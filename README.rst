@@ -17,6 +17,12 @@ linna
 
 Likelihood inference with neural network acceleration (under construction)
 
+**Linna is a tool to accelerate Bayesian posterior inferences using artificial neural networks.**
+- Able to reproduce posteriors produced by widely-used samplers on complicated cosmological data vector.
+- More than 100 times reduction on the number of model evaluations. 
+- Capable of running on standard super computers without requirements of numerous scarce resources, such as GPU arrays. -
+
+
 
 * Free software: MIT license
 * Documentation: https://linna.readthedocs.io.
@@ -27,10 +33,4 @@ Features
 
 * TODO
 
-Credits
--------
 
-This package was created with Cookiecutter_ and the `audreyr/cookiecutter-pypackage`_ project template.
-
-.. _Cookiecutter: https://github.com/audreyr/cookiecutter
-.. _`audreyr/cookiecutter-pypackage`: https://github.com/audreyr/cookiecutter-pypackage
