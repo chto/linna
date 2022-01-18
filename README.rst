@@ -15,7 +15,7 @@ linna
 
 
 
-Likelihood inference with neural network acceleration
+Likelihood inference with neural network acceleration (under construction)
 
 
 * Free software: MIT license
