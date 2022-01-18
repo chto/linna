@@ -25,13 +25,18 @@ from linna.util import *
 
 class NN_samplerv1:
     """
-
+    class to perform neural network sampling for each iteration 
     """
-    def __init__(self, model, outdir, prior_range):
-        self.model = model
+    def __init__(self, outdir, prior_range):
+        """
+        Args:
+        outdir (str): base directory of output training and mcmc files
+        prior_range (dict of str: [float, float]): string can be either flat or gauss. If the string is 'flat', [a,b] indicates the lower and upper limits of the prior. If the string is 'gauss', [a,b] indicates the mean and sigma. 
+        """
         self.outdir = outdir 
         self.prior_range = prior_range
-        self.seed=123456
+        self.seed=123456 #random seed of training data generation 
+
     def generate_training_data(self, samples, model, pool=None, args=None, kwargs=None):
         m = _FunctionWrapper(model, args, kwargs)
         filelist = glob.glob(os.path.join(args[0]+"/", "*"))
@@ -51,7 +56,7 @@ class NN_samplerv1:
         shiftAs=False
         while(len(samples)<Nsamples):
             samples = pyDOE2.lhs(len(self.prior_range), samples=int(Nsample_in), criterion="center",
-                                  iterations=5)
+                                  iterations=5, random_state=self.seed)
             samples-= 0.5
             samples*=2 
             for ind, prior in enumerate(self.prior_range):
@@ -479,7 +484,7 @@ def ml_sampler(ntrainArr, nvalArr, nkeepArr, ntimesArr, ntautolArr, outdir, theo
         #Generate training 
         ntrain = nt
         nval = nv
-        nnsampler = NN_samplerv1(None,  outdir_in, prior_range) 
+        nnsampler = NN_samplerv1(outdir_in, prior_range) 
         if "trainingoption" in params:
             options = params['trainingoption']
         else:
@@ -558,7 +563,7 @@ def ml_sampler(ntrainArr, nvalArr, nkeepArr, ntimesArr, ntautolArr, outdir, theo
             chain = np.load(outdir+"/samples_im.npy")
             log_prob_samples_x = np.load(outdir+"/log_prob_samples_x.npy")
         outimp = os.path.join(outdir, 'imp/')
-        nnsampler = NN_samplerv1(None,  outimp, prior_range)
+        nnsampler = NN_samplerv1(outimp, prior_range)
         if not os.path.isdir(outimp):
             os.makedirs(outimp)
         if not os.path.isfile(outdir+"/theory.npy"):
