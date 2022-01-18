@@ -25,7 +25,7 @@ from linna.util import *
 
 class NN_samplerv1:
     """
-    class to perform neural network sampling for each iteration 
+    A class to perform neural network sampling for each iteration 
     """
     def __init__(self, outdir, prior_range):
         """
@@ -38,6 +38,11 @@ class NN_samplerv1:
         self.seed=123456 #random seed of training data generation 
 
     def generate_training_data(self, samples, model, pool=None, args=None, kwargs=None):
+        """
+        Args:
+            outdir (str): base directory of output training and mcmc files
+            prior_range (dict of str: [float, float]): string can be either flat or gauss. If the string is 'flat', [a,b] indicates the lower and upper limits of the prior. If the string is 'gauss', [a,b] indicates the mean and sigma. 
+        """
         m = _FunctionWrapper(model, args, kwargs)
         filelist = glob.glob(os.path.join(args[0]+"/", "*"))
         for f in filelist:
