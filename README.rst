@@ -1,5 +1,5 @@
 =====
-linna
+LINNA
 =====
 
 
@@ -21,17 +21,18 @@ Likelihood inference with neural network acceleration (under construction)
 
 - Able to reproduce posteriors produced by widely-used samplers on complicated cosmological data vector.
 - More than 100 times reduction on the number of model evaluations. 
-- Capable of running on standard super computers without requirements of numerous scarce resources, such as GPU arrays. -
+- Capable of running on standard super computers without requirements of numerous scarce resources, such as GPU arrays.
 
 
+Documentation
+--------
+Read the docs at https://linna.readthedocs.io.
 
-* Free software: MIT license
-* Documentation: https://linna.readthedocs.io.
-
-
-Features
+Installation
 --------
 
-* TODO
+Attribution
+--------
 
-
+Example
+-------
