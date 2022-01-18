@@ -14,11 +14,6 @@ linna
         :alt: Documentation Status
 
 
-.. image:: https://pyup.io/repos/github/chto/linna/shield.svg
-     :target: https://pyup.io/repos/github/chto/linna/
-     :alt: Updates
-
-
 
 Likelihood inference with neural network acceleration
 
