@@ -39,9 +39,15 @@ class NN_samplerv1:
 
     def generate_training_data(self, samples, model, pool=None, args=None, kwargs=None):
         """
+        
+        Generate predicted data vector from a set of parameters 
         Args:
-            outdir (str): base directory of output training and mcmc files
-            prior_range (dict of str: [float, float]): string can be either flat or gauss. If the string is 'flat', [a,b] indicates the lower and upper limits of the prior. If the string is 'gauss', [a,b] indicates the mean and sigma. 
+            samples (ndarray): 2d array containing data with float type. Set of parameters in each row 
+            model (function): a function that take a row of samples, args and kwargs and return the predicted data vector  
+            pool (mpi pool, optional): a mpi pool instance that can do pool.map(function, iterables). 
+            args, kwargs (lists, optional): args or kwargs to be passed to model
+        Returns:
+            ndarray: each row corresponds to the output of model at each row of the samples.
         """
         m = _FunctionWrapper(model, args, kwargs)
         filelist = glob.glob(os.path.join(args[0]+"/", "*"))
@@ -56,6 +62,15 @@ class NN_samplerv1:
             os.remove(f)
         return returned
     def gensample_flat(self, Nsamples, omegab2cut=None):
+        """
+
+        Generate parameters for training and validation using latin hypercube.
+        Args:
+            Nsamples (int): number of samples to be generated. 
+            omegab2cut (list of int): 2 elements containing the lower and upper limits of omegab*h^2  
+        Returns:
+            ndarray: a 2d array containing data with float type. Parameters for training and validation  
+        """
         samples=[]
         Nsample_in = Nsamples
         shiftAs=False
@@ -80,7 +95,20 @@ class NN_samplerv1:
                 samples=samples[keep]
             Nsample_in+=1000
         return samples[:Nsamples]
+
     def gensample_chain(self, Nsamples, chain_in, nsigma, omegab2cut=None):
+        """
+
+        Generate parameters for training and validation from a chain using latin hyper cube.
+        Args:
+            Nsamples (int): number of samples to be generated. 
+            chain_in (ndarray): a mcmc chain.
+            nsigma (int): up to this number an mcmc chain is generated 
+            omegab2cut (list of int): 2 elements containing the lower and upper limits of omegab*h^2  
+        Returns:
+            ndarray: a 2d array containing data with float type. Parameters for training and validation  
+        """
+
         chain = deepcopy(chain_in)
         prior_in = deepcopy(self.prior_range)
         Nsamples=int(Nsamples)
@@ -94,7 +122,6 @@ class NN_samplerv1:
             prior_in[1][1] = np.log(1e10*prior_in[1][1])
         Generator = sg.SampleGenerator(chain=chain, scale=nsigma)
         Generator.set_seed(self.seed)
-        
         while(total_sample<Nsamples):
             x = Generator.get_samples(int(n_factor*Nsamples), "LH")
             if omegab2cut is not None:
@@ -109,6 +136,7 @@ class NN_samplerv1:
             n_factor+=1
             total_sample=x.shape[0]
         return x[:Nsamples]
+
     def emcee_sample(self, log_prob, ndim, nwalkers, init, pool, transform, ntimes=50, tautol=0.01, dlnp=None, ddlnp=None):
         max_n = 1000000
         x0 = init+0.1*np.random.randn(nwalkers, ndim)
@@ -148,8 +176,6 @@ class Log_prob:
     def __call__(self, x, returntorch=True, inputnumpy=True, returngrad=True):
         if not torch.is_tensor(x):
             x=torch.from_numpy(x.astype(np.float32)).to("cpu").clone().requires_grad_()
-      #  x_in = torch.zeros(10)
-      #  x_in[0:6]= torch.tensor([0.305, 2.27E-9, 0.98, 0.0505, 1E-3, 0.733],requires_grad=True)
         x_in  = self.transform(x,inputnumpy=False, returnnumpy=False)
         m = self.y_invtransform_data(self.model.predict(x_in,no_grad=self.no_grad))
         d = m-self.data_new
