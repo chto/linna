@@ -8,12 +8,12 @@ comm = MPI.COMM_WORLD
 from schwimmbad import MPIPool
 import glob
 import pickle
-import predictor_gpu
-import sampler
+from linna import predictor_gpu
+from linna import sampler
 import sys
 import emcee
 from sklearn.cluster import MeanShift, estimate_bandwidth, KMeans
-from nn import *
+from linna.nn import *
 from scipy.special import erf
 from scipy.stats import chi2
 import io

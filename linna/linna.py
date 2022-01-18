@@ -8,12 +8,12 @@ comm = MPI.COMM_WORLD
 from schwimmbad import MPIPool
 import glob
 import pickle
-import predictor_gpu
-import sampler
+from linna import predictor_gpu
+from linna import sampler
 import sys
 import emcee
 from sklearn.cluster import MeanShift, estimate_bandwidth, KMeans
-from nn import *
+from linna.nn import *
 from scipy.special import erf
 from scipy.stats import chi2
 import io
@@ -21,7 +21,7 @@ import gc
 import torch
 from torch.utils.data import Dataset, DataLoader
 from torch.utils import mkldnn as mkldnn_utils
-from util import *
+from linna.util import *
 
 class NN_samplerv1:
     """
@@ -442,6 +442,9 @@ def logp_theory_data(samples, theory, data, invcov, logprior):
 
 
 def ml_sampler(ntrainArr, nvalArr, nkeepArr, ntimesArr, ntautolArr, outdir, theory, priors, data, cov,  init, pool, nwalkers, device, dolog10index, ypositive, temperatureArr, omegab2cut=None, docuda=False, tsize=1, gpunode=None, nnmodel_in=None, params=None):
+    """
+        This is the second line of the docstring.
+    """
     ndim = len(init)
     sigma = np.sqrt(np.diag(cov))
     inv_cov = np.linalg.inv(cov)    
