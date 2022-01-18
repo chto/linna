@@ -30,8 +30,8 @@ class NN_samplerv1:
     def __init__(self, outdir, prior_range):
         """
         Args:
-        outdir (str): base directory of output training and mcmc files
-        prior_range (dict of str: [float, float]): string can be either flat or gauss. If the string is 'flat', [a,b] indicates the lower and upper limits of the prior. If the string is 'gauss', [a,b] indicates the mean and sigma. 
+            outdir (str): base directory of output training and mcmc files
+            prior_range (dict of str: [float, float]): string can be either flat or gauss. If the string is 'flat', [a,b] indicates the lower and upper limits of the prior. If the string is 'gauss', [a,b] indicates the mean and sigma. 
         """
         self.outdir = outdir 
         self.prior_range = prior_range
