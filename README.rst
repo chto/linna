@@ -18,6 +18,7 @@ linna
 Likelihood inference with neural network acceleration (under construction)
 
 **Linna is a tool to accelerate Bayesian posterior inferences using artificial neural networks.**
+
 - Able to reproduce posteriors produced by widely-used samplers on complicated cosmological data vector.
 - More than 100 times reduction on the number of model evaluations. 
 - Capable of running on standard super computers without requirements of numerous scarce resources, such as GPU arrays. -
