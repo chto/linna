@@ -10,7 +10,7 @@ with open('README.rst') as readme_file:
 with open('HISTORY.rst') as history_file:
     history = history_file.read()
 
-requirements = ["numpy", "torch>=1.10.1", "mpi4py", "schwimmbad", "emcee>=3.0.2", "h5py", "pydoe2", "scipy"]
+requirements = ["numpy", "torch>=1.10.1", "mpi4py", "schwimmbad", "emcee>=3.0.2", "h5py", "pydoe2", "scikit-learn", "torch-lr-finder"]
 
 test_requirements = ['pytest>=3', ]
 
@@ -28,6 +28,7 @@ setup(
         'Programming Language :: Python :: 3.7',
         'Programming Language :: Python :: 3.8',
     ],
+    dependency_links=["https://github.com/tmcclintock/Training_Sample_Generator.git"],
     description="Likelihood inference with neural network acceleration",
     install_requires=requirements,
     license="MIT license",
