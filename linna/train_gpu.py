@@ -3,26 +3,25 @@ import pyDOE2
 import sample_generator as sg
 from copy import deepcopy
 import os
-from .predictor_gpu import * 
+from linna.predictor_gpu import * 
 import glob
 import torch
 from torch.utils.data import Dataset, DataLoader
 import pickle
-import .sampler
 import sys
 from sklearn.cluster import MeanShift, estimate_bandwidth, KMeans
-from .nn import *
+from linna.nn import *
 from scipy.special import erf
 from scipy.stats import chi2
 import io
 from torch.utils import mkldnn as mkldnn_utils
 import mpi4py.rc
 mpi4py.rc.initialize = False
-import .itnn_accelerator_batch_v2_gpu
 
 if __name__=="__main__":
-    while(not torch.cuda.is_available()):
-        print("no cuda", flush=True)
+    if sys.argv[2] == "cuda":
+        while(not torch.cuda.is_available()):
+            print("no cuda", flush=True)
     outdir = sys.argv[1]
     f = open(outdir+"/model_pickle.pkl", 'rb')
     model = pickle.load(f) 

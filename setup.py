@@ -36,7 +36,7 @@ setup(
     include_package_data=True,
     keywords='linna',
     name='linna',
-    packages=find_packages(include=['linna', 'linna.*']),
+    packages=find_packages(include=['linna', 'linna.*', "script"]),
     test_suite='tests',
     tests_require=test_requirements,
     url='https://github.com/chto/linna',
