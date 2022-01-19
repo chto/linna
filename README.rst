@@ -31,8 +31,6 @@ Read the docs at https://linna.readthedocs.io.
 Installation
 --------
 
-terminal::
-
     git clone https://github.com/chto/linna.git
     cd linna 
     python setup.py
