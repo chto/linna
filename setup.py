@@ -10,7 +10,7 @@ with open('README.rst') as readme_file:
 with open('HISTORY.rst') as history_file:
     history = history_file.read()
 
-requirements = [ ]
+requirements = ["numpy", "torch>=1.10.1", "mpi4py", "schwimmbad", "emcee>=3.0.2", "h5py", "pydoe2", "scipy"]
 
 test_requirements = ['pytest>=3', ]
 
