@@ -37,6 +37,7 @@ Attribution
 Example
 -------
 For example, if you want to sample a 33 dimensional gaussian spaces, you can do 
+
 ```
 import numpy as np
 import matplotlib.pyplot as plt 
@@ -64,4 +65,5 @@ nwalkers = 4 #Number of mcmc walker
 pool = None
 outdir = os.path.abspath(os.getcwd())+"/out/2dgaussian/"
 chain, logprob = ml_sampler(outdir, theory, priors, means, cov, init, pool, nwalkers, gpunode=None, nepoch=101)
+
 ```
