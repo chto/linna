@@ -158,12 +158,12 @@ def ml_sampler_core(ntrainArr, nvalArr, nkeepArr, ntimesArr, ntautolArr, outdir,
             if not os.path.isfile(outdir_list[-1] + "/finish.pkl"): 
                 if gpunode is not None:
                     print("running gpu on {0}".format(gpunode), flush=True)
-                    os.system("cat {2}/train_gpu.py | ssh {0} python - {1}".format(gpunode, outdir_list[-1], os.path.abspath(os.getcwd())))
+                    os.system("cat {2}/train_gpu.py | ssh {0} python - {1}".format(gpunode, outdir_list[-1], os.path.dirname(os.path.abspath(__file__))))
                     while(1):
                         if  os.path.isfile(outdir_list[-1] + "/finish.pkl"):
                             break
                 else:
-                    os.system("python {1}/train_gpu.py {0}".format(outdir_list[-1], os.path.abspath(os.getcwd())))
+                    os.system("python {1}/train_gpu.py {0}".format(outdir_list[-1], os.path.dirname(os.path.abspath(__file__))))
                     while(1):
                         if  os.path.isfile(outdir_list[-1] + "/finish.pkl"):
                             break
