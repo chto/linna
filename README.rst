@@ -38,32 +38,30 @@ Example
 -------
 For example, if you want to sample a 33 dimensional gaussian spaces, you can do 
 
-```
-import numpy as np
-import matplotlib.pyplot as plt 
-from linna import ml_sampler
-#Define gaussian 
-ndim = 33
-init =  np.random.uniform(size=ndim)
-means = np.random.uniform(size=ndim)
-cov = np.diag(0.1*np.random.uniform(size=ndim))
+.. code-block:: python
+    
+    import numpy as np
+    import matplotlib.pyplot as plt 
+    from linna import ml_sampler
+    #Define gaussian 
+    ndim = 33
+    init =  np.random.uniform(size=ndim)
+    means = np.random.uniform(size=ndim)
+    cov = np.diag(0.1*np.random.uniform(size=ndim))
+    priors = []
+    for i in range(ndim):
+        priors.append({
+            'param': 'test_{0}'.format(i),
+            'dist': 'flat',
+            'arg1': -5.,
+            'arg2': 5.
+        })
+    def theory(x, outdirs):
+        x_new = deepcopy(x[1])
+        return x_new
+    #LINNA
+    nwalkers = 4 #Number of mcmc walker
+    pool = None
+    outdir = os.path.abspath(os.getcwd())+"/out/2dgaussian/"
+    chain, logprob = ml_sampler(outdir, theory, priors, means, cov, init, pool, nwalkers, gpunode=None, nepoch=101)
 
-priors = []
-for i in range(ndim):
-    priors.append({
-        'param': 'test_{0}'.format(i),
-        'dist': 'flat',
-        'arg1': -5.,
-        'arg2': 5.
-    })
-def theory(x, outdirs):
-    x_new = deepcopy(x[1])
-    return x_new
-
-#LINNA
-nwalkers = 4 #Number of mcmc walker
-pool = None
-outdir = os.path.abspath(os.getcwd())+"/out/2dgaussian/"
-chain, logprob = ml_sampler(outdir, theory, priors, means, cov, init, pool, nwalkers, gpunode=None, nepoch=101)
-
-```
