@@ -26,7 +26,7 @@ Likelihood inference with neural network acceleration (under construction)
 
 Documentation
 --------
-Read the docs at https://linna.readthedocs.io.
+Read the docs at https://linna.readthedocs.io/en/latest/readme.html#documentation
 
 Installation
 --------
