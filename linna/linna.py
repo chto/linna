@@ -22,7 +22,7 @@ from .util import *
 
 def ml_sampler(outdir, theory, priors, data, cov, init, pool, nwalkers, gpunode, omegab2cut=None, nepoch=4500):
     """
-    LINNA main function 
+    LINNA main function with hyperparameters set to values described in To et al. 2022
 
     Args:
         outdir (string): output directory 
@@ -58,11 +58,6 @@ def ml_sampler(outdir, theory, priors, data, cov, init, pool, nwalkers, gpunode,
     params["num_epochs"] = nepoch
     params["batch_size"] = 500
     return ml_sampler_core(ntrainArr, nvalArr, nkeepArr, ntimesArr, ntautolArr, outdir, theory, priors, data, cov,  init, pool, nwalkers, device, dolog10index, ypositive, temperatureArr, omegab2cut, docuda, tsize, gpunode, nnmodel_in, params, "emcee") 
-
-
-
-
-
 
 def ml_sampler_core(ntrainArr, nvalArr, nkeepArr, ntimesArr, ntautolArr, outdir, theory, priors, data, cov,  init, pool, nwalkers, device, dolog10index, ypositive, temperatureArr, omegab2cut=None, docuda=False, tsize=1, gpunode=None, nnmodel_in=None, params=None, method="emcee"):
     """
@@ -163,12 +158,12 @@ def ml_sampler_core(ntrainArr, nvalArr, nkeepArr, ntimesArr, ntautolArr, outdir,
             if not os.path.isfile(outdir_list[-1] + "/finish.pkl"): 
                 if gpunode is not None:
                     print("running gpu on {0}".format(gpunode), flush=True)
-                    os.system("cat /home/users/chto/code/lighthouse/python/nnacc/nnacc/train_gpu.py | ssh {0} python - {1}".format(gpunode, outdir_list[-1]))
+                    os.system("cat {2}/train_gpu.py | ssh {0} python - {1}".format(gpunode, outdir_list[-1], os.path.abspath(os.getcwd())))
                     while(1):
                         if  os.path.isfile(outdir_list[-1] + "/finish.pkl"):
                             break
                 else:
-                    os.system("python /home/users/chto/code/lighthouse/python/nnacc/nnacc/train_gpu.py {0}".format(outdir_list[-1]))
+                    os.system("python {1}/train_gpu.py {0}".format(outdir_list[-1], os.path.abspath(os.getcwd())))
                     while(1):
                         if  os.path.isfile(outdir_list[-1] + "/finish.pkl"):
                             break
