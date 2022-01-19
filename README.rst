@@ -46,7 +46,7 @@ For example, if you want to sample a 33 dimensional gaussian spaces, you can do
     
     import numpy as np
     import matplotlib.pyplot as plt 
-    from linna import ml_sampler
+    from linna.linna import ml_sampler
     #Define gaussian 
     ndim = 33
     init =  np.random.uniform(size=ndim)
