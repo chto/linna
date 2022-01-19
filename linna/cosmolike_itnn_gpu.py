@@ -1,5 +1,4 @@
 import numpy as np
-from predictor import *
 import pyDOE2
 import sample_generator as sg
 from copy import deepcopy
@@ -20,12 +19,11 @@ import glob
 import torch
 from torch.utils.data import Dataset, DataLoader
 import pickle
-import predictor
 import sampler
 import sys
 import emcee
 from sklearn.cluster import MeanShift, estimate_bandwidth, KMeans
-from itnn_accelerator_batch_v2_gpu import *
+from linna import *
 import numpy as np 
 import sys
 sys.path.append("/home/users/chto/code/lighthouse/python/datavector/")

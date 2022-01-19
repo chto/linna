@@ -1,8 +1,8 @@
 import torch
 from torch import nn
-from linna.nn import *
+from .nn import *
 from tqdm.auto import tqdm
-from linna.nnutils import *
+from .nnutils import *
 from torch_lr_finder import LRFinder
 import copy
 from torch.utils import mkldnn as mkldnn_utils

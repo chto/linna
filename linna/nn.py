@@ -219,6 +219,7 @@ class ChtoModelv2_linear(nn.Module):
         return s
 
 
+
 class ChtoModelv3(nn.Module):
     def __init__(self, in_size, out_size, linearmodel, docpu=False): 
         super(ChtoModelv2, self).__init__()
