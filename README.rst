@@ -31,10 +31,11 @@ Read the docs at https://linna.readthedocs.io.
 Installation
 --------
 
-.. code-block:: 
-git clone https://github.com/chto/linna.git
-cd linna 
-python setup.py
+terminal::
+
+    git clone https://github.com/chto/linna.git
+    cd linna 
+    python setup.py
 
 
 Example
