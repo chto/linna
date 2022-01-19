@@ -38,6 +38,7 @@ def ml_sampler(outdir, theory, priors, data, cov, init, pool, nwalkers, gpunode,
         nwalkers (int) number of mcmc walkers
         gpunode (string): name of gpu node
         omegab2cut (list of int): 2 elements containing the lower and upper limits of omegab*h^2
+        nepoch (int, optional): maximum number of epoch for the neural network training
     Returns:
         nd array: MCMC chain 
         1d array: log probability of MCMC chain
