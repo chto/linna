@@ -22,6 +22,7 @@ import torch
 from torch.utils.data import Dataset, DataLoader
 from torch.utils import mkldnn as mkldnn_utils
 from multiprocessing import Pool
+import matplotlib.pyplot as plt
 
 
 ##Auxilery function 
@@ -218,7 +219,8 @@ class chtoMultiprocessPool:
              list of objects
             
         """
-        return self.pool.map(worker, tasks) 
+        returned = self.pool.map(worker, tasks) 
+        return returned
         
     def noduplicate_close(self):
         """

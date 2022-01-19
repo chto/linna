@@ -23,7 +23,7 @@ from .util import *
 
 
 
-def ml_sampler(outdir, theory, priors, data, cov, init, pool, nwalkers, gpunode):
+def ml_sampler(outdir, theory, priors, data, cov, init, pool, nwalkers, gpunode, omegab2cut=None, nepoch=4500):
     """
     LINNA main function 
 
@@ -35,37 +35,38 @@ def ml_sampler(outdir, theory, priors, data, cov, init, pool, nwalkers, gpunode)
         cov (2d array): float array, covariance matrix
         init (ndarray): initial guess of mcmc,
         pool (mpi pool, optional): a mpi pool instance that can do pool.map(function, iterables). 
-        nwalkers (int) number of walkers
+        nwalkers (int) number of mcmc walkers
         gpunode (string): name of gpu node
+        omegab2cut (list of int): 2 elements containing the lower and upper limits of omegab*h^2
     Returns:
         nd array: MCMC chain 
         1d array: log probability of MCMC chain
         
     """
-    ntrainArr = [10000, 10000, 10000, 10000, 10000]
-    nvalArr = [500, 500, 500, 500, 500]
-    nkeepArr = [2, 2, 5, 5, 5]
-    ntimesArr = [5, 5, 10, 15, 10]
-    ntautolArr = [0.03, 0.03, 0.02, 0.01, 0.01]
-    temperatureArr =  [4.0, 2.0, 1.0, 1.0, 1.0]
+    ntrainArr = [10000, 10000, 10000, 10000]
+    nvalArr = [500, 500, 500, 500]
+    nkeepArr = [2, 2, 5, 5]
+    ntimesArr = [5, 5, 10, 15]
+    ntautolArr = [0.03, 0.03, 0.02, 0.01]
+    temperatureArr =  [4.0, 2.0, 1.0, 1.0]
     dolog10index = None
     ypositive = False 
     device = "cuda"
     docuda=False
     tsize=1
-    nnmodel_in = "ChtoModelv2"
+    nnmodel_in = ChtoModelv2
     params = {}
     params["trainingoption"] = 1 
-    params["num_epochs"] = 4500
-    params["batch_size"] =  500
-    ml_sampler_core(ntrainArr, nvalArr, nkeepArr, ntimesArr, ntautolArr, outdir, theory, priors, data, cov,  init, pool, nwalkers, device, dolog10index, ypositive, temperatureArr, omegab2cut, docuda, tsize, gpunode, nnmodel_in, params) 
+    params["num_epochs"] = nepoch
+    params["batch_size"] = 500
+    return ml_sampler_core(ntrainArr, nvalArr, nkeepArr, ntimesArr, ntautolArr, outdir, theory, priors, data, cov,  init, pool, nwalkers, device, dolog10index, ypositive, temperatureArr, omegab2cut, docuda, tsize, gpunode, nnmodel_in, params, "emcee") 
 
 
 
 
 
 
-def ml_sampler_core(ntrainArr, nvalArr, nkeepArr, ntimesArr, ntautolArr, outdir, theory, priors, data, cov,  init, pool, nwalkers, device, dolog10index, ypositive, temperatureArr, omegab2cut=None, docuda=False, tsize=1, gpunode=None, nnmodel_in=None, params=None):
+def ml_sampler_core(ntrainArr, nvalArr, nkeepArr, ntimesArr, ntautolArr, outdir, theory, priors, data, cov,  init, pool, nwalkers, device, dolog10index, ypositive, temperatureArr, omegab2cut=None, docuda=False, tsize=1, gpunode=None, nnmodel_in=None, params=None, method="emcee"):
     """
     LINNA main function 
 
@@ -82,7 +83,7 @@ def ml_sampler_core(ntrainArr, nvalArr, nkeepArr, ntimesArr, ntautolArr, outdir,
         cov (2d array): float array, covariance matrix
         init (ndarray): initial guess of mcmc,
         pool: 
-        nwalkers (int) number of walkers
+        nwalkers (int) number of mcmc walkers
         device (string): cpu or gpu
         dolog10index (int array): index of parameters to do log10 
         ypositive (bool): whether the data vector is expected to be all positive 
@@ -93,6 +94,7 @@ def ml_sampler_core(ntrainArr, nvalArr, nkeepArr, ntimesArr, ntautolArr, outdir,
         gpunode (string): name of gpu node
         nnmodel_in (string): instance of neural network model 
         params (dictionary): dictionary of parameters 
+        method (string): sampling method 
     Returns:
         nd array: MCMC chain 
         1d array: log probability of MCMC chain
@@ -154,14 +156,25 @@ def ml_sampler_core(ntrainArr, nvalArr, nkeepArr, ntimesArr, ntautolArr, outdir,
             pickle.dump(train_NN, f) 
             f.close()
             f = open(outdir_list[-1]+"/model_args.pkl", 'wb')
-            pickle.dump([nnsampler, cov, inv_cov, sigma, outdir_in, outdir_list, data, dolog10index, ypositive, False, 2, temperature, True, None, 1, nnmodel_in, params], f) 
+            if gpunode is not None:
+                docuda=True
+            else:
+                docuda=False
+            pickle.dump([nnsampler, cov, inv_cov, sigma, outdir_in, outdir_list, data, dolog10index, ypositive, False, 2, temperature, docuda, None, 1, nnmodel_in, params], f) 
             f.close()
             if not os.path.isfile(outdir_list[-1] + "/finish.pkl"): 
-                print("running gpu on {0}".format(gpunode), flush=True)
-                os.system("cat /home/users/chto/code/lighthouse/python/nnacc/nnacc/train_gpu.py | ssh {0} python - {1}".format(gpunode, outdir_list[-1]))
-                while(1):
-                    if  os.path.isfile(outdir_list[-1] + "/finish.pkl"):
-                        break
+                if gpunode is not None:
+                    print("running gpu on {0}".format(gpunode), flush=True)
+                    os.system("cat /home/users/chto/code/lighthouse/python/nnacc/nnacc/train_gpu.py | ssh {0} python - {1}".format(gpunode, outdir_list[-1]))
+                    while(1):
+                        if  os.path.isfile(outdir_list[-1] + "/finish.pkl"):
+                            break
+                else:
+                    os.system("python /home/users/chto/code/lighthouse/python/nnacc/nnacc/train_gpu.py python {0}".format(outdir_list[-1]))
+                    while(1):
+                        if  os.path.isfile(outdir_list[-1] + "/finish.pkl"):
+                            break
+
 
 
         
@@ -188,18 +201,18 @@ def ml_sampler_core(ntrainArr, nvalArr, nkeepArr, ntimesArr, ntautolArr, outdir,
         ddlnp = None
         if pool is not None:
             pool.noduplicate=True
-        run_mcmc(nnsampler, outdir_in, sys.argv[1], ndim, nwalkers, init, log_prob, dlnp=dlnp, ddlnp=ddlnp, pool=pool, transform=transform, ntimes=ntimes, tautol=tautol)
+        run_mcmc(nnsampler, outdir_in, method, ndim, nwalkers, init, log_prob, dlnp=dlnp, ddlnp=ddlnp, pool=pool, transform=transform, ntimes=ntimes, tautol=tautol)
         if pool is not None:
             pool.noduplicate_close() 
-        chain_name = os.path.join(os.path.join(outdir, "iter_{0}/".format(len(ntrainArr)-1)), "chemcee_256")
-        if os.path.isfile(chain_name+".h5"):
-            chain_name = chain_name+".h5"
-            chain, log_prob_samples_x, reader = read_chain_and_cut(chain_name.format(len(ntrainArr)-1), nk, ntimes)
-            log_prob_samples_x = reader.get_log_prob(discard=0, flat=True, thin=1)
-        else:
-            chain_name = chain_name+".txt"
-            chain = np.loadtxt(chain_name)[-100000:,:-1]
-            log_prob_samples_x = np.loadtxt(chain_name)[-100000:,-1]
+    chain_name = os.path.join(os.path.join(outdir, "iter_{0}/".format(len(ntrainArr)-1)), "chemcee_256")
+    if os.path.isfile(chain_name+".h5"):
+        chain_name = chain_name+".h5"
+        chain, log_prob_samples_x, reader = read_chain_and_cut(chain_name.format(len(ntrainArr)-1), nk, ntimes)
+        log_prob_samples_x = reader.get_log_prob(discard=0, flat=True, thin=1)
+    else:
+        chain_name = chain_name+".txt"
+        chain = np.loadtxt(chain_name)[-100000:,:-1]
+        log_prob_samples_x = np.loadtxt(chain_name)[-100000:,-1]
 
     if 'nimp' in params.keys():
         if not os.path.isfile(outdir+"/samples_im.npy"):

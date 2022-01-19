@@ -35,7 +35,7 @@ Installation
 
     git clone https://github.com/chto/linna.git
     cd linna 
-    python setup.py
+    python setup.py install
 
 
 Example

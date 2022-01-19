@@ -608,14 +608,14 @@ class HMCSampler:
         old_tau = np.inf
         print("start",flush=True)
         if not incremental:
-            self.sampler.run_mcmc(x0,nsteps=nsamp, progress=progress);
+            self.sampler.run_mcmc(x0,nsteps=nsamp, progress=progress, skip_initial_state_check=True);
             return np.array([self.transform(c) for c in self.sampler.get_chain(flat=True)])
         else:
             if not resume:
                 print("burnin...", flush=True)
                 nwalker = x0.shape[0]
                 sampler = emcee.EnsembleSampler(self.nwalkers, self.nparams, self.lnp, pool=pool, blobs_dtype=dtype)
-                sampler.run_mcmc(x0,nsteps=100, progress=True);
+                sampler.run_mcmc(x0,nsteps=100, progress=True, skip_initial_state_check=True);
                 flat_chain = sampler.get_chain(flat=True)
                 log_prob = sampler.get_log_prob(flat=True)
                 pos = flat_chain[np.argsort(log_prob)[::-1][:int(50*nwalker)]]
