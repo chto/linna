@@ -8,32 +8,12 @@ import torch
 import pickle
 
 
-class ResBlock(nn.Module):
-    def __init__(self, in_size, out_size):
-        super(ResBlock, self).__init__()
-
-        self.layer1 = nn.Linear(in_size, out_size)
-        self.layer2 = nn.Linear(out_size, out_size)
-
-        if in_size == out_size:
-            self.skip_layer = nn.Identity()
-        else:
-            self.skip_layer = nn.Linear(in_size, out_size, bias=False)
-
-    def forward(self, x):
-        h = self.layer1(F.relu(x))
-        y = self.layer2(F.relu(h)) * 0.1 + self.skip_layer(x)
-
-        return y
-
 class ResBlock_batchnorm(nn.Module):
     def __init__(self, in_size, channel, out_size):
         super(ResBlock_batchnorm, self).__init__()
 
         self.layer1 = nn.Linear(in_size, channel)
         self.layer2 = nn.Linear(channel, out_size)
-        #self.bn1 = nn.BatchNorm1d(channel)
-        #self.bn2 = nn.BatchNorm1d(out_size)
 
         if in_size == out_size:
             self.skip_layer = nn.Identity()
@@ -50,57 +30,25 @@ class ResBlock_batchnorm(nn.Module):
         nn.init.zeros_(self.skip_layer.weight)
 
     def forward(self, x):
-        #print(x.layout, self.layer1(x).layout)
         h = F.relu((self.layer1(x)))
         y = F.relu((self.layer2(h)) * 0.1 + self.skip_layer(x))
 
         return y
 
 
-class ChtoModel(nn.Module):
-    def __init__(self, in_size, out_size): 
-        super(ChtoModel, self).__init__()
-        self.channel = 16
-        hidden_size = max(32, int(out_size*32))
-        self.layer1 = nn.Linear(in_size, hidden_size)
-        self.layer2 = ResBlock_batchnorm(hidden_size, self.channel, hidden_size//2) 
-        hidden_size = hidden_size//2
-        self.layer3 = ResBlock_batchnorm(hidden_size, int(self.channel*2), hidden_size//2) 
-        hidden_size = hidden_size//2
-        self.layer4 = ResBlock_batchnorm(hidden_size, int(self.channel*4), hidden_size//2) 
-        hidden_size = hidden_size//2
-        self.layer5 = ResBlock_batchnorm(hidden_size, self.channel*8, hidden_size//2) 
-        hidden_size = hidden_size//2
-        self.layer6 = nn.Linear(hidden_size, out_size) 
-        self.skip_layer = nn.Linear(in_size, out_size, bias=False)
-        self.init_weight()
-    def init_weight(self):
-        for m in self.modules():
-           if type(m)==nn.Linear:
-                nn.init.xavier_uniform_(m.weight)
-                if m.bias is not None:
-                    m.bias.data.fill_(0.01)
-           elif type(m)==ResBlock_batchnorm:
-                m.init_weight()
-           elif type(m)==ChtoModel:
-                pass
-           else:
-               print(type(m))
-               assert(0)
-            
-        nn.init.zeros_(self.skip_layer.weight)
-    def forward(self, s):
-        s_in  = F.relu(self.layer1(s)) 
-        s_in  = self.layer2(s_in) 
-        s_in  = self.layer3(s_in) 
-        s_in  = self.layer4(s_in) 
-        s_in  = self.layer5(s_in)
-        s  = self.layer6(s_in)*0.1+self.skip_layer(s)
-        return s
-
-
 class ChtoModelv2(nn.Module):
+    """
+        main neural network used by linna
+    """
     def __init__(self, in_size, out_size, linearmodel, docpu=False): 
+        """
+    
+        Args:
+            in_size (int): size of input data vector
+            out_size (int): size of output data vector
+            linear model (function): input: tensor array, output: tensor array. One might want to add a pretrained model on top of the NN. 
+            docpu (bool) whether to use cpu for evaluation
+        """ 
         super(ChtoModelv2, self).__init__()
         self.channel = 16
         hidden_size = max(32, int(out_size*32))
@@ -113,20 +61,17 @@ class ChtoModelv2(nn.Module):
         hidden_size = hidden_size//2
         self.layer4 = ResBlock_batchnorm(hidden_size, int(self.channel*4), hidden_size//2) 
         hidden_size = hidden_size//2
-        #self.layer5 = ResBlock_batchnorm(hidden_size, self.channel*8, hidden_size//2) 
-        #hidden_size = hidden_size//2
-        #self.layer6 = ResBlock_batchnorm(hidden_size, self.channel*8, hidden_size//2) 
-        #hidden_size = hidden_size//2
         self.layer6 = nn.Linear(hidden_size, hidden_size*4) 
         self.layer7 = nn.Linear(hidden_size*4, out_size) 
         self.layer8 = nn.Linear(out_size, out_size) 
         self.init_weight()
-        #if not linearmodel.istrained():
-        #    raise(ValueError("linear model must be trained before pass it to ChtoModel_v2"))
         self.linearmodel = linearmodel
         self.docpu = docpu
 
     def init_weight(self):
+        """
+            initialize weights for neural network
+        """
         for m in self.modules():
            if type(m)==nn.Linear:
                 nn.init.xavier_uniform_(m.weight)
@@ -143,19 +88,30 @@ class ChtoModelv2(nn.Module):
                assert(0)
             
     def forward(self, s):
+        """
+
+        Args:
+            s (torch tensor): input array
+        Returns:
+            torch tensor: ourput array
+
+        """
         if self.docpu:
             s = s.to_mkldnn()
         s_in  = F.relu(self.layer1(s)) 
         s_in  = self.layer2(s_in) 
         s_in  = self.layer3(s_in) 
         s_in  = self.layer4(s_in) 
-        #s_in  = self.layer5(s_in)
         s_in  = F.relu(self.layer6(s_in))
         s_in  = F.relu(self.layer7(s_in))
-        s = self.layer8(s_in)# + self.linearmodel(s) 
+        if self.linearmodel is not None:
+            s = self.layer8(s_in)+self.linearmodel(s)
+        else:
+            s = self.layer8(s_in)
         if self.docpu:
            s = s.to_dense()
         return s
+
 
 class ChtoModelv2_linear(nn.Module):
     def __init__(self, in_size, out_size, linearmodel, docpu=False): 
@@ -217,69 +173,6 @@ class ChtoModelv2_linear(nn.Module):
         if self.docpu:
            s = s.to_dense()
         return s
-
-
-
-class ChtoModelv3(nn.Module):
-    def __init__(self, in_size, out_size, linearmodel, docpu=False): 
-        super(ChtoModelv2, self).__init__()
-        self.channel = 16
-        hidden_size = max(32, int(out_size*32))
-        if out_size>30:
-            hidden_size=1000
-        self.layer1 = nn.Linear(in_size, hidden_size)
-        self.layer2 = ResBlock_batchnorm(hidden_size, self.channel, hidden_size//2) 
-        hidden_size = hidden_size//2
-        self.layer3 = ResBlock_batchnorm(hidden_size, int(self.channel*2), hidden_size//2) 
-        hidden_size = hidden_size//2
-        self.layer4 = ResBlock_batchnorm(hidden_size, int(self.channel*4), hidden_size//2) 
-        hidden_size = hidden_size//2
-        #self.layer5 = ResBlock_batchnorm(hidden_size, self.channel*8, hidden_size//2) 
-        #hidden_size = hidden_size//2
-        #self.layer6 = ResBlock_batchnorm(hidden_size, self.channel*8, hidden_size//2) 
-        #hidden_size = hidden_size//2
-        self.layer6 = nn.Linear(hidden_size, hidden_size*4) 
-        self.layer8 = nn.Linear(hidden_size*4, out_size) 
-        self.init_weight()
-        #if not linearmodel.istrained():
-        #    raise(ValueError("linear model must be trained before pass it to ChtoModel_v2"))
-        self.linearmodel = linearmodel
-        self.docpu = docpu
-
-    def init_weight(self):
-        for m in self.modules():
-           if type(m)==nn.Linear:
-                nn.init.xavier_uniform_(m.weight)
-                if m.bias is not None:
-                    m.bias.data.fill_(1E-2)
-           elif type(m)==ResBlock_batchnorm:
-                m.init_weight()
-           elif type(m)==ChtoModelv2:
-                pass
-           elif type(m)==nn.modules.batchnorm.BatchNorm1d:
-                pass
-           else:
-               print(type(m))
-               assert(0)
-            
-    def forward(self, s):
-        if self.docpu:
-            s = s.to_mkldnn()
-        s_in  = F.relu(self.layer1(s)) 
-        s_in  = self.layer2(s_in) 
-        s_in  = self.layer3(s_in) 
-        s_in  = self.layer4(s_in) 
-        #s_in  = self.layer5(s_in)
-        s_in  = F.relu(self.layer6(s_in))
-        s = self.layer8(s_in)# + self.linearmodel(s) 
-        if self.docpu:
-           s = s.to_dense()
-        return s
-
-
-
-
-
 
 class LinearModel:
     def __init__(self, norder, npc, x_transform=None, y_transform=None, y_inverse_transform_data=None):

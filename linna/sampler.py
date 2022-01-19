@@ -24,11 +24,7 @@ def stop_criterion(thetaminus, thetaplus, rminus, rplus, cov=None):
         return if the condition is valid
     """
     dtheta = thetaplus - thetaminus
-    #if cov is None:
-    #print((np.dot(dtheta, rminus.T)), np.dot(dtheta, rplus.T))
     return (np.dot(dtheta, rminus.T) >= 0) & (np.dot(dtheta, rplus.T) >= 0)
-    #else:
-    #    return (np.dot(dtheta, cov.apply(rminus.T)) >= 0) & (np.dot(dtheta, cov.apply(rplus.T)) >= 0)
 
 def leapfrog(theta, r, grad, epsilon, f, cov=None):
     """ Perfom a leapfrog jump in the Hamiltonian space
@@ -228,7 +224,6 @@ class HamiltonianMove(emcee.moves.Move):
     def propose(self, model, state):
         # Set up the integrator and sample the initial momenta.
         nwalkers, ndim = state.coords.shape
-        #print(nwalkers, ndim)
         integrator = _hmc_wrapper(model.random, self.compute_derivative,self.cov, *(self.get_args(model)))
         momenta = integrator.cov.sample(model.random, nwalkers,
                                         ndim)
@@ -319,7 +314,6 @@ class NUTSMove(emcee.moves.Move):
     def propose(self, model, state):
         # Set up the integrator and sample the initial momenta.
         nwalkers, ndim = state.coords.shape
-        #print(nwalkers, ndim)
         r0s = self.cov.sample(model.random, nwalkers,ndim)
 
         coords = state.coords
@@ -376,7 +370,6 @@ class Nuts_one_worker(object):
             joint = self.state.log_prob[n] - 0.5 * np.dot(self.r0s[n].T, self.cov.apply(self.r0s[n]))
             coord = self.coords[n]
             grad = self.dlnp(coord)#self.state.blobs[n] 
-            #print(coord, grad, self.state.blobs[n], len(self.state.blobs))
             r0 = self.r0s[n]
             # initialize the tree
             thetaminus = coord[:]
@@ -411,7 +404,6 @@ class Nuts_one_worker(object):
                 # Increment depth.
                 j += 1
             # Do adaptation of epsilon if we're still doing burn-in.
-            #print(j)
             return returncoord, returnlogp, accepted, alpha, nalpha, returngrad
 
 
@@ -506,7 +498,6 @@ class HMCSampler:
         #    grad = self.dlnp(x)
         #    x = x + grad * eps
         #    pbar.set_description('log-prob: {}'.format(lnp))
-        print(x)
 
         res = minimize(lambda x: -1*self.lnp(x).detach().numpy(), x, method='Nelder-Mead',
                options={'maxiter':maxiter, 'disp': True, 'gtol':gtol})
@@ -516,7 +507,6 @@ class HMCSampler:
                options={'maxiter':maxiter, 'disp': True, 'gtol':gtol})
         print("optimization done")
         print("#"*100)
-        print(res)
         print("#"*100)
 
         hess = []
@@ -592,7 +582,6 @@ class HMCSampler:
                 kwargs = {"returntorch":True}
             else:
                 kwargs = {}
-            print(x0.shape[0])
             print("########")
             moves = [(NUTSMove(self.lnp, self.dlnp,self.m, Madapt=Madapt, x0=x0, nwalkers=x0.shape[0], torchspeed=self.torchspeed, maxheight=5),1)] 
             self.sampler = emcee.EnsembleSampler(self.nwalkers, self.nparams, self.lnp, pool=pool,  backend=backend, blobs_dtype=dtype, moves=moves,kwargs=kwargs)
@@ -621,7 +610,6 @@ class HMCSampler:
                 pos = flat_chain[np.argsort(log_prob)[::-1][:int(50*nwalker)]]
                 x0 = pos[np.random.randint(0,len(pos),nwalker),:]
                 print("burnin done...", flush=True)
-                print(x0)
                 self.sampler.reset()    
             for sample in self.sampler.sample(x0, iterations=nsamp, progress=progress, skip_initial_state_check=True):
                 # Only check convergence every 100 steps

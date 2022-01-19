@@ -17,8 +17,6 @@ from torch.utils.data import Dataset, DataLoader
 from torch.utils import mkldnn as mkldnn_utils
 from linna.util import *
 
-
-
 def ml_sampler(outdir, theory, priors, data, cov, init, pool, nwalkers, gpunode, omegab2cut=None, nepoch=4500):
     """
     LINNA main function with hyperparameters set to values described in To et al. 2022

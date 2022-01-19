@@ -7,11 +7,12 @@ Welcome to linna's documentation!
     linna
 .. toctree::
    :maxdepth: 2
-   :caption: Contents:
+   :glob:
 
    readme
    installation
-   usage
+   Overview <cookbook>
+   ../notebooks/multivariate_gaussian_distribution.ipynb
    modules
    contributing
    authors
