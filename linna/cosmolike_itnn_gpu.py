@@ -101,7 +101,6 @@ def get_prior_dic_init(param):
             assert(0)
     return prior_range, np.array(init)
 
-
 class Model_func:
     def __init__(self, datavector_writer, mask):
         self.datavector_writer = datavector_writer
@@ -138,7 +137,6 @@ class Model_func:
         except:
             data = np.zeros_like(np.where(self.mask>0)[0])
         return data
-
 
 def main():
     import time
@@ -270,10 +268,6 @@ def main():
     if pool is not None:
         pool.close()
         
-
-
-
-
 
 if __name__=="__main__":
 #    import sys

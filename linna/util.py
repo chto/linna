@@ -3,6 +3,8 @@ import pyDOE2
 import sample_generator as sg
 from copy import deepcopy
 import os
+import mpi4py
+mpi4py.rc.initialize = False
 from mpi4py import MPI
 comm = MPI.COMM_WORLD
 from schwimmbad import MPIPool

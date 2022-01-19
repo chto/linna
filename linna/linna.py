@@ -3,9 +3,6 @@ import pyDOE2
 import sample_generator as sg
 from copy import deepcopy
 import os
-from mpi4py import MPI
-comm = MPI.COMM_WORLD
-from schwimmbad import MPIPool
 import glob
 import pickle
 from . import predictor_gpu
@@ -160,7 +157,7 @@ def ml_sampler_core(ntrainArr, nvalArr, nkeepArr, ntimesArr, ntautolArr, outdir,
             if gpunode is not None:
                 docuda=True
             else:
-                docuda=False
+                docuda=torch.cuda.is_available()
             pickle.dump([nnsampler, cov, inv_cov, sigma, outdir_in, outdir_list, data, dolog10index, ypositive, False, 2, temperature, docuda, None, 1, nnmodel_in, params], f) 
             f.close()
             if not os.path.isfile(outdir_list[-1] + "/finish.pkl"): 
@@ -171,7 +168,7 @@ def ml_sampler_core(ntrainArr, nvalArr, nkeepArr, ntimesArr, ntautolArr, outdir,
                         if  os.path.isfile(outdir_list[-1] + "/finish.pkl"):
                             break
                 else:
-                    os.system("python /home/users/chto/code/lighthouse/python/nnacc/nnacc/train_gpu.py python {0}".format(outdir_list[-1]))
+                    os.system("python /home/users/chto/code/lighthouse/python/nnacc/nnacc/train_gpu.py {0}".format(outdir_list[-1]))
                     while(1):
                         if  os.path.isfile(outdir_list[-1] + "/finish.pkl"):
                             break
