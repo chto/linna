@@ -31,8 +31,6 @@ Read the docs at https://linna.readthedocs.io.
 Installation
 --------
 
-Attribution
---------
 
 Example
 -------
@@ -67,3 +65,6 @@ outdir = os.path.abspath(os.getcwd())+"/out/2dgaussian/"
 chain, logprob = ml_sampler(outdir, theory, priors, means, cov, init, pool, nwalkers, gpunode=None, nepoch=101)
 
 ```
+Attribution
+--------
+
