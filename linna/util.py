@@ -9,7 +9,9 @@ try:
     from mpi4py import MPI
     comm = MPI.COMM_WORLD
     from schwimmbad import MPIPool
+    nompi=False
 except:
+    nompi=True
     print("no mpi")
 import glob
 import pickle
@@ -63,144 +65,144 @@ def read_chain_and_cut(chainname, nk, ntimes=20, walkercut=False):
 
 def _dummy_callback(x):
     pass 
+if not nompi:
+    class chtoPool(MPIPool):
+        def __init__(self, comm=None):
+            super(chtoPool, self).__init__(comm, use_dill=False)
+            self.noduplicate=False
+            self.worker_already_get_func_list=[]
+        def wait(self):
+            if self.is_master():
+                return
 
-class chtoPool(MPIPool):
-    def __init__(self, comm=None):
-        super(chtoPool, self).__init__(comm, use_dill=False)
-        self.noduplicate=False
-        self.worker_already_get_func_list=[]
-    def wait(self):
-        if self.is_master():
-            return
-
-        worker = self.comm.rank
-        status = MPI.Status()
-        old_func=None
-        while True:
-            task = self.comm.recv(source=self.master, tag=MPI.ANY_TAG,
-                                  status=status)
-            if task is None:
-                break
-
-            #if self.rank==2:
-            #    print("wait", self.rank, task)
-            #    print("\n\n\n\n\n\n\n\n\n", flush=True)
-            #    assert(0)
-            if task is None:
-                #print("break\n\n\n\\n\n\n\n\n\n\n\n", flush=True)
-                continue
-                #break
-            if task[0] == "bcast":
-                noreturn=True
-                task = task[1]
-                task[1] = self.rank
-            else:
-                noreturn = False
-            func, arg = task
-            try:
-                if func == "noduplicate":
-                    func = old_func
-                elif func == "reset":
-                    print("reset", flush=True)
-                    old_func = None
-                    continue
-                elif func.f.noduplicate and (old_func is not None):
-                    func = old_func
-                else:
-                    old_func = func
-            except:
-                old_func=None
-                
-            result = func(arg)
-            if not noreturn:
-                self.comm.send(result, self.master, status.tag)
-    def map(self, worker, tasks, callback=None):
-        """Evaluate a function or callable on each task in parallel using MPI.
-
-        The callable, ``worker``, is called on each element of the ``tasks``
-        iterable. The results are returned in the expected order (symmetric with
-        ``tasks``).
-
-        Parameters
-        ----------
-        worker : callable
-            A function or callable object that is executed on each element of
-            the specified ``tasks`` iterable. This object must be picklable
-            (i.e. it can't be a function scoped within a function or a
-            ``lambda`` function). This should accept a single positional
-            argument and return a single object.
-        tasks : iterable
-            A list or iterable of tasks. Each task can be itself an iterable
-            (e.g., tuple) of values or data to pass in to the worker function.
-        callback : callable, optional
-            An optional callback function (or callable) that is called with the
-            result from each worker run and is executed on the master process.
-            This is useful for, e.g., saving results to a file, since the
-            callback is only called on the master thread.
-
-        Returns
-        -------
-        results : list
-            A list of results from the output of each ``worker()`` call.
-        """
-
-        # If not the master just wait for instructions.
-        if not self.is_master():
-            self.wait()
-            return
-
-        if callback is None:
-            callback = _dummy_callback
-
-        workerset = self.workers.copy()
-        tasklist = [(tid, [worker, arg]) for tid, arg in enumerate(tasks)]
-        resultlist = [None] * len(tasklist)
-        pending = len(tasklist)
-
-        while pending:
-            if workerset and tasklist:
-                worker = workerset.pop()
-                taskid, task = tasklist.pop()
-                if self.noduplicate:
-                    if worker in self.worker_already_get_func_list: 
-                        task[0] = "noduplicate"
-                    else:
-                        self.worker_already_get_func_list.append(worker)
-                        
-                self.comm.send(task, dest=worker, tag=taskid)
-
-            if tasklist:
-                flag = self.comm.Iprobe(source=MPI.ANY_SOURCE, tag=MPI.ANY_TAG)
-                if not flag:
-                    continue
-            else:
-                self.comm.Probe(source=MPI.ANY_SOURCE, tag=MPI.ANY_TAG)
-
+            worker = self.comm.rank
             status = MPI.Status()
-            result = self.comm.recv(source=MPI.ANY_SOURCE, tag=MPI.ANY_TAG,
-                                    status=status)
-            worker = status.source
-            taskid = status.tag
+            old_func=None
+            while True:
+                task = self.comm.recv(source=self.master, tag=MPI.ANY_TAG,
+                                      status=status)
+                if task is None:
+                    break
 
-            callback(result)
+                #if self.rank==2:
+                #    print("wait", self.rank, task)
+                #    print("\n\n\n\n\n\n\n\n\n", flush=True)
+                #    assert(0)
+                if task is None:
+                    #print("break\n\n\n\\n\n\n\n\n\n\n\n", flush=True)
+                    continue
+                    #break
+                if task[0] == "bcast":
+                    noreturn=True
+                    task = task[1]
+                    task[1] = self.rank
+                else:
+                    noreturn = False
+                func, arg = task
+                try:
+                    if func == "noduplicate":
+                        func = old_func
+                    elif func == "reset":
+                        print("reset", flush=True)
+                        old_func = None
+                        continue
+                    elif func.f.noduplicate and (old_func is not None):
+                        func = old_func
+                    else:
+                        old_func = func
+                except:
+                    old_func=None
+                    
+                result = func(arg)
+                if not noreturn:
+                    self.comm.send(result, self.master, status.tag)
+        def map(self, worker, tasks, callback=None):
+            """Evaluate a function or callable on each task in parallel using MPI.
 
-            workerset.add(worker)
-            resultlist[taskid] = result
-            pending -= 1
+            The callable, ``worker``, is called on each element of the ``tasks``
+            iterable. The results are returned in the expected order (symmetric with
+            ``tasks``).
 
-        return resultlist
-    def noduplicate_close(self):
-        self.worker_already_get_func_list=[]
-        self.noduplicate = False
-        workerset = self.workers.copy()
-        for tid, workers in enumerate(workerset):
-            self.comm.send(["reset", ["reset", None]], dest=workers, tag=tid)
-    def bcast(self, worker, args, sizemax):
-        workerset = self.workers.copy()
-        for tid, workers in enumerate(workerset):
-            if workers < sizemax:
-                self.comm.send(["bcast", [worker, args]], dest=workers, tag=tid)
-        worker(0)
+            Parameters
+            ----------
+            worker : callable
+                A function or callable object that is executed on each element of
+                the specified ``tasks`` iterable. This object must be picklable
+                (i.e. it can't be a function scoped within a function or a
+                ``lambda`` function). This should accept a single positional
+                argument and return a single object.
+            tasks : iterable
+                A list or iterable of tasks. Each task can be itself an iterable
+                (e.g., tuple) of values or data to pass in to the worker function.
+            callback : callable, optional
+                An optional callback function (or callable) that is called with the
+                result from each worker run and is executed on the master process.
+                This is useful for, e.g., saving results to a file, since the
+                callback is only called on the master thread.
+
+            Returns
+            -------
+            results : list
+                A list of results from the output of each ``worker()`` call.
+            """
+
+            # If not the master just wait for instructions.
+            if not self.is_master():
+                self.wait()
+                return
+
+            if callback is None:
+                callback = _dummy_callback
+
+            workerset = self.workers.copy()
+            tasklist = [(tid, [worker, arg]) for tid, arg in enumerate(tasks)]
+            resultlist = [None] * len(tasklist)
+            pending = len(tasklist)
+
+            while pending:
+                if workerset and tasklist:
+                    worker = workerset.pop()
+                    taskid, task = tasklist.pop()
+                    if self.noduplicate:
+                        if worker in self.worker_already_get_func_list: 
+                            task[0] = "noduplicate"
+                        else:
+                            self.worker_already_get_func_list.append(worker)
+                            
+                    self.comm.send(task, dest=worker, tag=taskid)
+
+                if tasklist:
+                    flag = self.comm.Iprobe(source=MPI.ANY_SOURCE, tag=MPI.ANY_TAG)
+                    if not flag:
+                        continue
+                else:
+                    self.comm.Probe(source=MPI.ANY_SOURCE, tag=MPI.ANY_TAG)
+
+                status = MPI.Status()
+                result = self.comm.recv(source=MPI.ANY_SOURCE, tag=MPI.ANY_TAG,
+                                        status=status)
+                worker = status.source
+                taskid = status.tag
+
+                callback(result)
+
+                workerset.add(worker)
+                resultlist[taskid] = result
+                pending -= 1
+
+            return resultlist
+        def noduplicate_close(self):
+            self.worker_already_get_func_list=[]
+            self.noduplicate = False
+            workerset = self.workers.copy()
+            for tid, workers in enumerate(workerset):
+                self.comm.send(["reset", ["reset", None]], dest=workers, tag=tid)
+        def bcast(self, worker, args, sizemax):
+            workerset = self.workers.copy()
+            for tid, workers in enumerate(workerset):
+                if workers < sizemax:
+                    self.comm.send(["bcast", [worker, args]], dest=workers, tag=tid)
+            worker(0)
 
 
 class chtoMultiprocessPool:
