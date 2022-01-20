@@ -4,10 +4,12 @@ language: python
 python:
   - 3.9
 # Command to install dependencies, e.g. pip install -r requirements.txt --use-mirrors
-install: pip install -U tox-travis
+install: 
+- travis_retry pip install --upgrade pip
+- travis_retry python setup.py install
 
 # Command to run tests, e.g. python setup.py test
-script: tox
+script: pytest linna/tests
 
 # Assuming you have installed the travis-ci CLI tool, after you
 # create the Github repo and add it to Travis, run the
