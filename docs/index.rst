@@ -6,12 +6,11 @@ Welcome to linna's documentation!
    :recursive:
     linna
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 10
    :glob:
 
    readme
    installation
-   Overview <cookbook>
    ../notebooks/multivariate_gaussian_distribution.ipynb
    modules
    contributing
