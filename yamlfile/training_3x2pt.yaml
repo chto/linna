@@ -5,7 +5,7 @@ analysis_choice: ["selection_bias"]
 chain_file: "analysis/dataanalysis/desy1/datav/test/ch"
 data_file: "analysis/speedup/ml/data/demo_data/combined.txt"
 cov_file:  "analysis/dataanalysis/desy1/datav_oak//covariance/cov_v8/cov"
-outdir : "/home/users/chto/code/lighthouse/analysis/speedup/ml/datav/3x2pt_test/"
+outdir : "/home/users/chto/code/lighthouse/analysis/speedup/ml/datav/3x2pt_test2/"
 statsnames  : ['xip', 'xim', 'gammat', 'wtheta']
 run_mode    : CLASS
 rmarea_int : False
