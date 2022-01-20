@@ -5,8 +5,14 @@ Welcome to linna's documentation!
    :template: custom-module-template.rst
    :recursive:
     linna
+
 .. toctree::
-   :maxdepth: 10
+   :maxdepth: 2
+   :caption: Example
+   :hidden:
+   ../notebooks/multivariate_gaussian_distribution.ipynb
+.. toctree::
+   :maxdepth: 1
    :glob:
 
    readme
