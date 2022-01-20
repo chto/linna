@@ -1,3 +1,2 @@
 sphinx-autoapi
 nbsphinx
-https://github.com/vidartf/nbsphinx-link.git
