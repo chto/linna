@@ -20,8 +20,7 @@ matrix:
             - deadsnakes
             - ubuntu-toolchain-r-test
           packages:
-            - python3.7-dev
-            - g++-7
+            - python3.9
       env:
         - C_COMPILER="gcc-7", CXX_COMPILER="g++-7"
 
