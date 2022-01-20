@@ -16,9 +16,7 @@ LINNA
 .. image:: https://img.shields.io/badge/arXiv-<INDEX>-<COLOR>.svg
         :target: https://arxiv.org/abs/1234
 
-Likelihood inference with neural network acceleration (under construction)
-
-**Linna is a tool to accelerate Bayesian posterior inferences using artificial neural networks.**
+**Linna (Likelihood inference with neural network acceleration) is a tool to accelerate Bayesian posterior inferences using artificial neural networks.**
 
 - Able to reproduce posteriors produced by widely-used samplers on complicated cosmological data vector.
 - More than 100 times reduction on the number of model evaluations. 
@@ -69,4 +67,5 @@ For example, if you want to sample a 33 dimensional gaussian spaces, you can do
     pool = None
     outdir = os.path.abspath(os.getcwd())+"/out/2dgaussian/"
     chain, logprob = ml_sampler(outdir, theory, priors, means, cov, init, pool, nwalkers, gpunode=None, nepoch=101)
+
 
