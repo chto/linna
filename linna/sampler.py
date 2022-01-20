@@ -604,7 +604,7 @@ class HMCSampler:
                 print("burnin...", flush=True)
                 nwalker = x0.shape[0]
                 sampler = emcee.EnsembleSampler(self.nwalkers, self.nparams, self.lnp, pool=pool, blobs_dtype=dtype)
-                sampler.run_mcmc(x0,nsteps=100, progress=True, skip_initial_state_check=True);
+                _ = sampler.run_mcmc(x0,nsteps=100, progress=True, skip_initial_state_check=True);
                 flat_chain = sampler.get_chain(flat=True)
                 log_prob = sampler.get_log_prob(flat=True)
                 pos = flat_chain[np.argsort(log_prob)[::-1][:int(50*nwalker)]]

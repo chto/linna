@@ -23,12 +23,12 @@ def theory(x, outdirs):
     return x_new
 nwalkers = 4 #Number of mcmc walker
 pool = None
-ntrainArr = [1]
-nvalArr = [1]
-nkeepArr = [2]
-ntimesArr = [1]
-ntautolArr = [0.1]
-temperatureArr =  [2.0]
+ntrainArr = [20]
+nvalArr = [5]
+nkeepArr = [1]
+ntimesArr = [2]
+ntautolArr = [0.5]
+temperatureArr =  [1.0]
 params = {}
 params["trainingoption"] = 1
 params["num_epochs"] = 10
