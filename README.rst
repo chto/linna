@@ -12,8 +12,9 @@ LINNA
 .. image:: https://readthedocs.org/projects/linna/badge/?version=latest
         :target: https://linna.readthedocs.io/en/latest/?version=latest
         :alt: Documentation Status
-
-
+        
+.. image:: https://img.shields.io/badge/arXiv-<INDEX>-<COLOR>.svg
+        :target: https://arxiv.org/abs/1234
 
 Likelihood inference with neural network acceleration (under construction)
 
