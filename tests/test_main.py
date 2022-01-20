@@ -1,6 +1,5 @@
 import pytest
 import numpy as np
-import matplotlib.pyplot as plt 
 from linna.main import ml_sampler,ml_sampler_core
 from linna.util import *
 from linna.nn import *
