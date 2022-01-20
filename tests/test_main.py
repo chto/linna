@@ -4,23 +4,11 @@ import matplotlib.pyplot as plt
 from linna.main import ml_sampler
 from linna.util import *
 from linna.nn import *
+ndim = 2 
 init =  np.random.uniform(size=ndim)
-#mean value 
-means = np.array([0.1, 1])
-
-ndim = len(init)
 #covariance matrix 
 cov = np.diag([0.5, 0.2])
-#Prior, Theory, and likelihood
-ndim = 2
-init =  np.random.uniform(size=ndim)
-#mean value 
 means = np.array([0.1, 1])
-
-ndim = len(init)
-#covariance matrix 
-cov = np.diag([0.5, 0.2])
-#Prior, Theory, and likelihood
 
 priors = []
 for i in range(ndim):
