@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 from linna.main import ml_sampler
 from linna.util import *
 from linna.nn import *
-nit =  np.random.uniform(size=ndim)
+init =  np.random.uniform(size=ndim)
 #mean value 
 means = np.array([0.1, 1])
 
