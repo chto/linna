@@ -1,0 +1,39 @@
+#An example yaml file of using linna for cosmolike
+#####Cosmolike setting#######
+include: ['samplers_multinest_p1.yaml', 'DESY1_params.yaml']
+analysis_choice: ["selection_bias"]
+chain_file: "analysis/dataanalysis/desy1/datav/test/ch"
+data_file: "analysis/speedup/ml/data/demo_data/combined.txt"
+cov_file:  "analysis/dataanalysis/desy1/datav_oak//covariance/cov_v8/cov"
+outdir : "/home/users/chto/code/lighthouse/analysis/speedup/ml/datav/3x2pt_test/"
+statsnames  : ['xip', 'xim', 'gammat', 'wtheta']
+run_mode    : CLASS
+rmarea_int : False
+rmphotoz_int : False
+nonlinear: 0
+omega_nuh2_range : [0.0005, 0.00083, 0.01]
+h0_range : [0.55, 0.7, 0.91]
+omega_b_range : [0.03,0.048, 0.07]
+A_s_range : [5.e-10,2.19e-9,5.e-9]
+shear_m_sigma: [0.023,0.023,0.023,0.023]
+lens_z_bias_mean: [0.008, -0.005, 0.006, 0.0, 0.0]
+lens_z_bias_sigma: [0.007,0.007,0.006, 0.01,0.01]
+
+####LINNA setting#####
+
+#####################
+#  EMCEE parameters #
+#####################
+nkeepArr : [2, 2, 5, 5] #number of correlation time to keep
+ntimesArr : [5, 5, 10, 15] #number of correlation time to terminate
+ntautolArr : [0.03, 0.03, 0.02, 0.01] #tolerance of correlation time error
+#####################
+# Training parameter#
+#####################
+temperatureArr : [4.0, 2.0, 1.0, 1.0] #Temperature of posterior 
+ntrainArr : [10000, 10000, 10000, 10000] #Number of training data 
+nvalArr : [500, 500, 500, 500] #Number of validation data 
+nnmodel: "ChtoModelv2" #Neural network model implemented in nn.py
+num_epochs: 4500       #Maximum number of epoch for training 
+batch_size: 500        #Batch size of training 
+trainingoption: 1      #Randomly sample the chain for training data 

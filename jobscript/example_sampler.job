@@ -1,0 +1,13 @@
+#!/bin/bash
+#SBATCH --job-name=linna
+#SBATCH --output=./job/linna_%A_%a.out
+#SBATCH --error=./job/linna_%A_%a.err
+#SBATCH --array=0
+#SBATCH --time=24:00:00
+#SBATCH -p kipac
+#SBATCH --mem-per-cpu=4G
+#SBATCH --cpus-per-task=1
+#SBATCH --ntasks=128
+#SBATCH --mail-user=chto
+#SBATCH --mail-type=ALL
+srun --kill-on-bad-exit=1 python ../linna/cosmolike_run.py emcee sh03-12n07 ../yamlfile/training_3x2pt.yaml /home/users/chto/code/lighthouse/analysis/yamlfiles/

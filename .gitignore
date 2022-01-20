@@ -2,6 +2,7 @@
 *.swo
 out/
 _autosummary/
+job/
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
