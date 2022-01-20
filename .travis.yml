@@ -9,7 +9,7 @@ install:
 - python setup.py install
 
 # Command to run tests, e.g. python setup.py test
-script: pytest linna/tests
+script: pytest tests
 
 matrix:
   include:
