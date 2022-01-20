@@ -11,7 +11,7 @@ Welcome to linna's documentation!
 
    readme
    installation
-   ../notebooks/multivariate_gaussian_distribution.ipynb
+   multivariate_gaussian_distribution.ipynb
    modules
    contributing
    authors
