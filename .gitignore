@@ -1,6 +1,7 @@
 *.swp
 *.swo
 out/
+_autosummary/
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

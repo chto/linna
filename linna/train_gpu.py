@@ -15,8 +15,11 @@ from scipy.special import erf
 from scipy.stats import chi2
 import io
 from torch.utils import mkldnn as mkldnn_utils
-import mpi4py.rc
-mpi4py.rc.initialize = False
+try:
+    import mpi4py.rc
+    mpi4py.rc.initialize = False
+except:
+    print("no mpi")
 
 if __name__=="__main__":
     if sys.argv[2] == "cuda":
