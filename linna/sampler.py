@@ -6,6 +6,10 @@ import os
 from scipy.optimize import minimize
 from functools import wraps
 import torch
+import zeus
+from zeus.autocorr import AutoCorrTime
+import copy
+import h5py
 
 def stop_criterion(thetaminus, thetaplus, rminus, rplus, cov=None):
     """ Compute the stop condition in the main loop
@@ -424,7 +428,6 @@ class Transformbackend(emcee.backends.HDFBackend):
         filename,
         transform, name="mcmc", read_only=False, dtype=None
      ):
-
         super(Transformbackend, self).__init__(filename, name, read_only, dtype)
         self.transform = transform
 
@@ -633,5 +636,136 @@ class HMCSampler:
                     break
 
                 old_tau = tau
+            del self.sampler
+            self.sampler = None
+
+
+
+
+class ZeusTransformCallback(zeus.callbacks.SaveProgressCallback):
+    def __init__(self, filename, ncheck, transform):
+        super(ZeusTransformCallback, self).__init__(filename, ncheck)
+        self.transform = transform
+    
+    def __save(self, x, y):
+        x = copy.deepcopy(x)
+        with h5py.File(self.directory, 'a') as hf:
+            hf['samples'].resize((hf['samples'].shape[0] + x.shape[0]), axis = 0)
+            hf['samples'][-x.shape[0]:] = x
+            hf['chain_transformed'].resize((hf['samples'].shape[0] + x.shape[0]), axis = 0)
+            hf['chain_transformed'][-x.shape[0]:] = np.apply_along_axis(self.transform, -1, x)
+            hf['logprob'].resize((hf['logprob'].shape[0] + y.shape[0]), axis = 0)
+            hf['logprob'][-y.shape[0]:] = y
+
+
+    def __initialize_and_save(self, x, y):
+        x = copy.deepcopy(x)
+        with h5py.File(self.directory, 'w') as hf:
+            hf.create_dataset('samples', data=x, compression="gzip", chunks=True, maxshape=(None,)+x.shape[1:])
+            hf.create_dataset('chain_transformed', data=np.apply_along_axis(self.transform, -1, x), compression="gzip", chunks=True, maxshape=(None,)+x.shape[1:])
+            hf.create_dataset('logprob', data=y, compression="gzip", chunks=True, maxshape=(None,)+y.shape[1:]) 
+        self.initialised  = True
+    def __call__(self, i, x, y):
+        """
+        Method that calls the callback function.
+        Args:
+            i (int): Current iteration of the run.
+            x (array): Numpy array containing the chain elements up to iteration i for every walker.
+            y (array): Numpy array containing the log-probability values of all chain elements up to
+                iteration i for every walker.
+        Returns:
+            True if the criteria are satisfied and sampling terminates or False if the criteria are
+                not satisfied and sampling continues.
+        
+        """
+        if i % self.ncheck == 0:
+            if self.initialised:
+                self.__save(x[i-self.ncheck:], y[i-self.ncheck:])
+            else:
+                self.__initialize_and_save(x[i-self.ncheck:], y[i-self.ncheck:])
+
+        return None
+
+    def get_last_sample(self):
+        with h5py.File(self.directory, "r") as hf:
+            samples = np.copy(hf['samples'])
+        return samples[-1]
+
+class Zeusbackend:
+    def __init__(chainname):
+        self.name = chainname
+
+    def get_value(name, flat=False, thin=1, discard=0):
+        with h5py.File(self.name, "r") as hf:
+            v = hf[name][discard + thin - 1 : self.iteration : thin]
+        if flat:
+            s = list(v.shape[1:])
+            s[0] = np.prod(v.shape[:2])
+            return v.reshape(s)
+        else:
+            return v
+    def get_log_prob(self, **kwargs):
+        return self.get_value("logprob", **kwargs)
+
+    def get_autocorr_time(self, discard=0, thin=1, **kwargs):
+        """
+        Args:
+            c (float, optional): Truncation parameter of automated windowing procedure of Sokal (1989), default is 5.0
+            method (str):  Method to use to compute the integrated autocorrelation time. Available options are ``mk`` (Minas Karamanis method), ``dfm (Daniel Forman-Mackey method)``, and ``gw (Goodman-Weary method)``.
+
+        """
+        x = self.get_value("samples", discard=discard, thin=thin)        
+        return thin * AutoCorrTime(x, **kwargs)
+
+
+
+class ZeusSampler:
+    def __init__(self, lnp, ndim, nwalkers,  x0=None, transform=None):
+        self.lnp = lnp
+        self.transform = transform
+        self.x0 = x0
+        self.nparams = ndim
+        self.nwalkers=nwalkers
+        self.sampler=None
+
+    def sample(self, pool, nsamp, outdir="./", progress=False, overwrite=False, ntimes=10, tautol=0.01, incremental=True):
+        if self.transform is None:
+            self.transform = lambda x: x
+        x0 = self.x0
+        filename = os.path.join(outdir, "zeus_256.h5")
+        if os.path.isfile(filename):
+            if overwrite:
+                if pool.is_master():
+                    os.remove(filename)
+            else:
+                print("init from previous")
+                x0=None
+        backend = ZeusTransformCallback(filename, 100, self.transform)
+        if x0 is None:
+            x0 = backend.get_last_sample()
+            resume = True
+        else:
+            resume = False
+        if not incremental:
+            backend=None
+        self.sampler = zeus.EnsembleSampler(self.nwalkers, self.nparams, self.lnp, pool=pool)
+        cb0 = zeus.callbacks.AutocorrelationCallback(ncheck=100, dact=tautol, nact=ntimes, discard=0.5)
+            
+        if not incremental:
+            self.sampler.run_mcmc(x0,nsteps=nsamp, progress=progress);
+            return np.array([self.transform(c) for c in self.sampler.get_chain(flat=True)])
+        else:
+            if not resume:
+                print("burnin...", flush=True)
+                nwalker = x0.shape[0]
+                sampler = emcee.EnsembleSampler(self.nwalkers, self.nparams, self.lnp, pool=pool)
+                _ = sampler.run_mcmc(x0,nsteps=100, progress=True, skip_initial_state_check=True);
+                flat_chain = sampler.get_chain(flat=True)
+                log_prob = sampler.get_log_prob(flat=True)
+                pos = flat_chain[np.argsort(log_prob)[::-1][:int(50*nwalker)]]
+                x0 = pos[np.random.randint(0,len(pos),nwalker),:]
+                print("burnin done...", flush=True)
+                self.sampler.reset()    
+            self.sampler.run_mcmc(x0, nsamp, callbacks=[backend, cb0]);
             del self.sampler
             self.sampler = None

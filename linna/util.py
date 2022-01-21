@@ -48,8 +48,14 @@ def get_good_walker_list(log_prob_samples):
     best = labels[np.argmax(cluster_centers[:,0])]
     print(np.where(labels==best)[0], cluster_centers, labels)
     return np.where(labels==best)[0] 
-def read_chain_and_cut(chainname, nk, ntimes=20, walkercut=False):
-    reader = emcee.backends.HDFBackend(chainname, read_only=True)
+
+def read_chain_and_cut(chainname, nk, ntimes=20, walkercut=False, method="emcee"):
+    if method=="emcee":
+        reader = emcee.backends.HDFBackend(chainname, read_only=True)
+    elif method =="zeus":
+        reader = Zeusbackend(chainname, read_only=True)
+    else:
+        raise NotImplementedError(method)
     if nk > ntimes:
         print("Error: keep number greater then chain samples. nk: {0}, ntimes: {1}. This will lead to inclusion of all burn in step".format(nk, ntimes))
     nk = int(np.max(reader.get_autocorr_time(quiet=True))*nk)
@@ -566,6 +572,25 @@ class NN_samplerv1:
         if (ddlnp is not None)&(dlnp is not None):
             samp.calc_hess_mass_mat(maxiter=1E7, gtol=1E0)
         samp.sample(pool, max_n, 0, 0, outdir=self.outdir, overwrite=False, ntimes=ntimes, method = "emcee", incremental=True, progress=False, tautol=tautol)
+
+    def Zeus_sample(self, log_prob, ndim, nwalkers, init, pool, transform, ntimes=50, tautol=0.01, dlnp=None, ddlnp=None):
+        """
+
+        Generate MCMC chains using zeus.
+        Args:
+            log_prob (function): function of posterior. 
+            ndim (int): the dimension of posterior 
+            nwalkers (int): number of mcmc walkers 
+            init (ndarray): array of init points of the sampler 
+            pool (mpi pool, optional): a mpi pool instance that can do pool.map(function, iterables)
+            transform (function): mapping mcmc samples to actually parameters 
+        """
+
+
+        max_n = 1000000
+        x0 = init+0.1*np.random.randn(nwalkers, ndim)
+        samp = sampler.ZeusSampler(log_prob, ndim, nwalkers, x0=x0, transform=transform)
+        samp.sample(pool, max_n, outdir=self.outdir, overwrite=False, ntimes=ntimes, incremental=True, progress=False, tautol=tautol)
     def _HMC_sample(self, log_prob, dlnp, ddlnp, ndim, nwalkers, init, pool, transform, samp_steps, samp_eps):
         max_n = 1000000
         x0 = init+0.1*np.random.randn(nwalkers, ndim)
@@ -884,6 +909,9 @@ def run_mcmc(nnsampler, outdir, method, ndim, nwalkers, init, log_prob, dlnp=Non
         nnsampler._NUTS_sample(log_prob, dlnp, ddlnp, ndim, nwalkers, init, pool, 100, transform=transform)
     elif method == "emcee":
         nnsampler.emcee_sample(log_prob, ndim, nwalkers, init, pool, ntimes=ntimes, tautol=tautol, transform=transform, dlnp=dlnp, ddlnp=ddlnp)
+
+    elif method == "zeus":
+        nnsampler.Zeus_sample(log_prob, ndim, nwalkers, init, pool, ntimes=ntimes, tautol=tautol, transform=transform, dlnp=dlnp, ddlnp=ddlnp)
     else:
         nnsampler._HMC_sample(log_prob, dlnp, ddlnp, ndim, nwalkers, init, pool, samp_steps, samp_eps, transform=transform)
 

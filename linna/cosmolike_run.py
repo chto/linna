@@ -15,7 +15,6 @@ import torch
 from torch.utils.data import Dataset, DataLoader
 import pickle
 import sys
-import emcee
 from sklearn.cluster import MeanShift, estimate_bandwidth, KMeans
 import numpy as np 
 import sys
@@ -122,6 +121,7 @@ class Model_func:
 def main():
     import time
     start = time.time()
+    method = sys.argv[1]
     params = util_chto.chto_yamlload(sys.argv[3], parent_dir=sys.argv[4])         
     outdir = params['outdir']
     if not os.path.isdir(outdir):
@@ -195,6 +195,7 @@ def main():
    
     if pool is not None:
         if not pool.is_master():
+            sys.stdout.flush()
             pool.wait()
             print("done", flush=True)
             print(" mpi = {0} done".format(MPI.COMM_WORLD.rank), flush=True)
@@ -202,10 +203,12 @@ def main():
             print(e)
             print("#################")
             sys.exit(0)
-    ml_sampler_core(ntrainArr, nvalArr, nkeepArr, ntimesArr, ntautolArr, outdir, theory, priors, data, cov,  init, pool, nwalkers, device, dolog10index=[0,1], ypositive=False, temperatureArr=temperatureArr, omegab2cut=[3,5,0.005,0.039], docuda=False, tsize=tsize, gpunode=gpunode, nnmodel_in=nnmodel_in, params=params)
-    end = time.time() 
-    print("Runtime of the program is end - start", end-start)
-    np.save(outdir+"/time.npy", end-start)
+    if pool is not None:
+        if pool.is_master():
+            ml_sampler_core(ntrainArr, nvalArr, nkeepArr, ntimesArr, ntautolArr, outdir, theory, priors, data, cov,  init, pool, nwalkers, device, dolog10index=[0,1], ypositive=False, temperatureArr=temperatureArr, omegab2cut=[3,5,0.005,0.039], docuda=False, tsize=tsize, gpunode=gpunode, nnmodel_in=nnmodel_in, params=params, method=method)
+            end = time.time() 
+            print("Runtime of the program is end - start", end-start)
+            np.save(outdir+"/time.npy", end-start)
 
     if pool is not None:
         pool.close()

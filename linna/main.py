@@ -105,6 +105,12 @@ def ml_sampler_core(ntrainArr, nvalArr, nkeepArr, ntimesArr, ntautolArr, outdir,
     transform = Transform(priors)
     invtransform = invTransform(priors)
     init = invtransform(init) 
+    if method=="emcee":
+        filename = "chemcee_256.h5"
+    elif method == "zeus":
+        filename = "zeus_256.h5"
+    else:
+        raise NotImplementedError(method)
     for i, (nt, nv, nk, ntimes, tautol, temperature) in enumerate(zip(ntrainArr, nvalArr, nkeepArr, ntimesArr, ntautolArr, temperatureArr)):
         temperature = temperature**2
         print("#"*100)
@@ -114,10 +120,10 @@ def ml_sampler_core(ntrainArr, nvalArr, nkeepArr, ntimesArr, ntautolArr, outdir,
         if i==0:
             chain=None
         else:
-            chain_name = os.path.join(os.path.join(outdir, "iter_{0}/".format(i-1)), "chemcee_256")
+            chain_name = os.path.join(os.path.join(outdir, "iter_{0}/".format(i-1)), filename[:-3])
             if os.path.isfile(chain_name+".h5"):
                 chain_name = chain_name+".h5"
-                chain, _temp, _temp2= read_chain_and_cut(chain_name.format(i-1), nk, ntimes)
+                chain, _temp, _temp2= read_chain_and_cut(chain_name.format(i-1), nk, ntimes, method=method)
             else:
                 chain_name = chain_name+".txt"
                 chain = np.loadtxt(chain_name)[-100000:,:-1]
@@ -176,8 +182,7 @@ def ml_sampler_core(ntrainArr, nvalArr, nkeepArr, ntimesArr, ntautolArr, outdir,
 
 
         #Do MCMC
-        
-        if os.path.isfile(outdir_in+"/chemcee_256.h5"):
+        if os.path.isfile(os.path.join(outdir_in, filename)):
             continue
 
         invcov_new = torch.from_numpy(inv_cov.astype(np.float32)).to('cpu').detach().clone().requires_grad_()
@@ -194,10 +199,10 @@ def ml_sampler_core(ntrainArr, nvalArr, nkeepArr, ntimesArr, ntautolArr, outdir,
         run_mcmc(nnsampler, outdir_in, method, ndim, nwalkers, init, log_prob, dlnp=dlnp, ddlnp=ddlnp, pool=pool, transform=transform, ntimes=ntimes, tautol=tautol)
         if pool is not None:
             pool.noduplicate_close() 
-    chain_name = os.path.join(os.path.join(outdir, "iter_{0}/".format(len(ntrainArr)-1)), "chemcee_256")
+    chain_name = os.path.join(os.path.join(outdir, "iter_{0}/".format(len(ntrainArr)-1)), filename[:-3])
     if os.path.isfile(chain_name+".h5"):
         chain_name = chain_name+".h5"
-        chain, log_prob_samples_x, reader = read_chain_and_cut(chain_name.format(len(ntrainArr)-1), nk, ntimes)
+        chain, log_prob_samples_x, reader = read_chain_and_cut(chain_name.format(len(ntrainArr)-1), nk, ntimes, method=method)
         log_prob_samples_x = reader.get_log_prob(discard=0, flat=True, thin=1)
     else:
         chain_name = chain_name+".txt"
@@ -206,10 +211,10 @@ def ml_sampler_core(ntrainArr, nvalArr, nkeepArr, ntimesArr, ntautolArr, outdir,
 
     if 'nimp' in params.keys():
         if not os.path.isfile(outdir+"/samples_im.npy"):
-            chain_name = os.path.join(os.path.join(outdir, "iter_{0}/".format(len(ntrainArr)-1)), "chemcee_256")
+            chain_name = os.path.join(os.path.join(outdir, "iter_{0}/".format(len(ntrainArr)-1)), filename[:-3])
             if os.path.isfile(chain_name+".h5"):
                 chain_name = chain_name+".h5"
-                chain, log_prob_samples_x, reader = read_chain_and_cut(chain_name.format(len(ntrainArr)-1), nk, ntimes)
+                chain, log_prob_samples_x, reader = read_chain_and_cut(chain_name.format(len(ntrainArr)-1), nk, ntimes, method=method)
                 log_prob_samples_x = reader.get_log_prob(discard=0, flat=True, thin=1)
             else:
                 chain_name = chain_name+".txt"
