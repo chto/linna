@@ -8,7 +8,10 @@ def test_zeus():
     ivar = 1.0 / np.random.rand(ndim)
     start = np.random.randn(nwalkers,ndim)
     samp = ZeusSampler(log_prob, ndim, nwalkers,  x0=start)     
-    samp.sample(None, nsteps, outdir="tests/out/mcmcout_zeus/", progress=False, overwrite=False, ntimes=10, tautol=0.01, incremental=True)
+    outdir = "tests/out/mcmcout_zeus/"
+    if not os.path.isdir(outdir):
+        os.makedirs(outdir)
+    samp.sample(None, nsteps, outdir=outdir, progress=False, overwrite=False, ntimes=10, tautol=0.01, incremental=True)
 
 
 if __name__=="__main__":
