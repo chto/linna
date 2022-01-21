@@ -7,7 +7,7 @@ LINNA
         :target: https://pypi.python.org/pypi/linna
 
 .. image:: https://img.shields.io/travis/chto/linna.svg
-        :target: https://travis-ci.com/chto/linna
+        :target: https://app.travis-ci.com/github/chto/linna
 
 .. image:: https://readthedocs.org/projects/linna/badge/?version=latest
         :target: https://linna.readthedocs.io/en/latest/?version=latest
