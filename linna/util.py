@@ -53,12 +53,12 @@ def read_chain_and_cut(chainname, nk, ntimes=20, walkercut=False, method="emcee"
     if method=="emcee":
         reader = emcee.backends.HDFBackend(chainname, read_only=True)
     elif method =="zeus":
-        reader = Zeusbackend(chainname, read_only=True)
+        reader = sampler.Zeusbackend(chainname)
     else:
         raise NotImplementedError(method)
     if nk > ntimes:
         print("Error: keep number greater then chain samples. nk: {0}, ntimes: {1}. This will lead to inclusion of all burn in step".format(nk, ntimes))
-    nk = int(np.max(reader.get_autocorr_time(quiet=True))*nk)
+    nk = int(np.max(reader.get_autocorr_time())*nk)
     chain = reader.get_value("chain_transformed", discard=0, flat=False, thin=1)
     log_prob_samples = reader.get_log_prob(discard=0, flat=False, thin=1)
     if walkercut:

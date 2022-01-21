@@ -692,12 +692,13 @@ class ZeusTransformCallback(zeus.callbacks.SaveProgressCallback):
         return samples[-1]
 
 class Zeusbackend:
-    def __init__(chainname):
+    def __init__(self, chainname):
         self.name = chainname
 
-    def get_value(name, flat=False, thin=1, discard=0):
+    def get_value(self, name, flat=False, thin=1, discard=0):
         with h5py.File(self.name, "r") as hf:
-            v = hf[name][discard + thin - 1 : self.iteration : thin]
+            v = np.copy(hf[name])
+        v = v[discard + thin - 1 : len(v) : thin]
         if flat:
             s = list(v.shape[1:])
             s[0] = np.prod(v.shape[:2])
