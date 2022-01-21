@@ -5,7 +5,7 @@ Credits
 Development Lead
 ----------------
 
-* `Chun-Hao To <chunhaoto.com>`_ <chunhaoto@gmail.com>
+* `Chun-Hao To <https://chunhaoto.com>`_ <chunhaoto@gmail.com>
 
 Contributors
 ------------
