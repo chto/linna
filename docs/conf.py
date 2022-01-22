@@ -162,3 +162,13 @@ texinfo_documents = [
 
 
 
+#Exclude autodoc imports
+autodoc_mock_imports = [
+    "torch",
+    "numpy",
+    "matplotlib",
+    "scikit-learn"
+]
+
+
+
