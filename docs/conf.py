@@ -167,7 +167,9 @@ autodoc_mock_imports = [
     "torch",
     "numpy",
     "matplotlib",
-    "scikit-learn"
+    "scikit-learn",
+    "zeus-mcmc",
+    "h5py"
 ]
 
 
