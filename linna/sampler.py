@@ -12,116 +12,13 @@ import copy
 import h5py
 
 def stop_criterion(thetaminus, thetaplus, rminus, rplus, cov=None):
-    """ Compute the stop condition in the main loop
-    dot(dtheta, rminus) >= 0 & dot(dtheta, rplus >= 0)
-
-    INPUTS
-    ------
-    thetaminus, thetaplus: ndarray[float, ndim=1]
-        under and above position
-    rminus, rplus: ndarray[float, ndim=1]
-        under and above momentum
-
-    OUTPUTS
-    -------
-    criterion: bool
-        return if the condition is valid
-    """
-    dtheta = thetaplus - thetaminus
-    return (np.dot(dtheta, rminus.T) >= 0) & (np.dot(dtheta, rplus.T) >= 0)
+    raise NotImplementedError()
 
 def leapfrog(theta, r, grad, epsilon, f, cov=None):
-    """ Perfom a leapfrog jump in the Hamiltonian space
-    INPUTS
-    ------
-    theta: ndarray[float, ndim=1]
-        initial parameter position
-
-    r: ndarray[float, ndim=1]
-        initial momentum
-
-    grad: float
-        initial gradient value
-
-    epsilon: float
-        step size
-
-    f: callable
-        it should return the log probability and gradient evaluated at theta
-        logp, grad = f(theta)
-
-    OUTPUTS
-    -------
-    thetaprime: ndarray[float, ndim=1]
-        new parameter position
-    rprime: ndarray[float, ndim=1]
-        new momentum
-    gradprime: float
-        new gradient
-    logpprime: float
-        new lnp
-    """
-    # make half step in r
-    rprime = r + 0.5 * epsilon * grad
-    # make new step in theta
-    if cov is not None:
-        thetaprime = theta + epsilon * cov.apply(rprime)
-    else:
-        thetaprime = theta + epsilon * rprime
-    #compute new gradient
-    logpprime, gradprime = f(thetaprime)
-    # make half step in r again
-    rprime = rprime + 0.5 * epsilon * gradprime
-    return thetaprime, rprime, gradprime, logpprime
+    raise NotImplementedError()
 
 def build_tree(theta, r, grad, v, j, epsilon, f, joint0, cov):
-    """The main recursion."""
-    if (j == 0):
-        # Base case: Take a single leapfrog step in the direction v.
-        thetaprime, rprime, gradprime, logpprime = leapfrog(theta, r, grad, v * epsilon, f, cov=cov)
-        jointprime = logpprime - 0.5 * np.dot(rprime.T, cov.apply(rprime.T))
-        # Is the simulation wildly inaccurate?
-        sprime = jointprime - joint0 > -1000
-        # Set the return values---minus=plus for all things here, since the
-        # "tree" is of depth 0.
-        thetaminus = thetaprime[:]
-        thetaplus = thetaprime[:]
-        rminus = rprime[:]
-        rplus = rprime[:]
-        gradminus = gradprime[:]
-        gradplus = gradprime[:]
-        logptree = jointprime - joint0
-        #logptree = logpprime
-        # Compute the acceptance probability.
-        alphaprime = min(1., np.exp(jointprime - joint0))
-        #alphaprime = min(1., np.exp(logpprime - 0.5 * np.dot(rprime, rprime.T) - joint0))
-        nalphaprime = 1
-    else:
-        # Recursion: Implicitly build the height j-1 left and right subtrees.
-        thetaminus, rminus, gradminus, thetaplus, rplus, gradplus, thetaprime, gradprime, logpprime, sprime, alphaprime, nalphaprime, logptree = build_tree(theta, r, grad, v, j - 1, epsilon, f, joint0, cov)
-        # No need to keep going if the stopping criteria were met in the first subtree.
-        if sprime:
-            if v == -1:
-                thetaminus, rminus, gradminus, _, _, _, thetaprime2, gradprime2, logpprime2, sprime2, alphaprime2, nalphaprime2, logptree2 = build_tree(thetaminus, rminus, gradminus, v, j - 1, epsilon, f, joint0, cov)
-            else:
-                _, _, _, thetaplus, rplus, gradplus, thetaprime2, gradprime2, logpprime2, sprime2, alphaprime2, nalphaprime2, logptree2 = build_tree(thetaplus, rplus, gradplus, v, j - 1, epsilon, f, joint0, cov)
-            # Conpute total probability of this trajectory
-            logptot = np.logaddexp(logptree, logptree2)
-            # Choose which subtree to propagate a sample up from.
-            if np.log(np.random.uniform()) < logptree2 - logptot:
-                thetaprime = thetaprime2[:]
-                gradprime = gradprime2[:]
-                logpprime = logpprime2
-            logptree = logptot
-            # Update the stopping criterion.
-            sprime = sprime and sprime2 and stop_criterion(thetaminus, thetaplus, rminus, rplus)
-            # Update the acceptance probability statistics.
-            alphaprime = alphaprime + alphaprime2
-            nalphaprime = nalphaprime + nalphaprime2
-
-    return thetaminus, rminus, gradminus, thetaplus, rplus, gradplus, thetaprime, gradprime, logpprime, sprime, alphaprime, nalphaprime, logptree
-
-
+    raise NotImplementedError()
 
 class Functransform:
     def __init__(self, xmap, u, func, derive=0, torchspeed=False):
@@ -150,6 +47,7 @@ class Functransform:
             else:
                 lnp = self.orig_lnp( xp, *args, **kwargs)
                 return lnp.item(), torch.autograd.grad(lnp,x)[0].detach().numpy()
+
 class CombineFunc:
     def __init__(self, f1, f2):
         self.f1 = f1
@@ -201,8 +99,6 @@ class _hmc_wrapper(object):
 
 
 class HamiltonianMove(emcee.moves.Move):
-
-
     def __init__(self, compute_derivative, nsteps, epsilon, cov):
         self.nsteps = nsteps
         self.epsilon = epsilon
@@ -253,7 +149,9 @@ class HamiltonianMove(emcee.moves.Move):
         return state, accepted
 
 def find_reasonable_epsilon(theta0, grad0, logp0, f, cov):
-    """ Heuristic for choosing an initial value of epsilon """
+    """ 
+        Heuristic for choosing an initial value of epsilon 
+    """
     epsilon = 1.
     r0 = np.random.normal(0., 1., len(theta0))
 
@@ -288,8 +186,6 @@ def find_reasonable_epsilon(theta0, grad0, logp0, f, cov):
 class NUTSMove(emcee.moves.Move):
     #Modified from  Mfouesneau 's awesome Nuts package 
     #https://github.com/mfouesneau/NUTS/blob/master/nuts/nuts.py
-
-
     def __init__(self, lnp, compute_derivative, cov, Madapt, x0, nwalkers, delta=0.6, maxheight=np.inf, torchspeed=True):
         self.cov = _hmc_matrix(np.asarray(cov))
         self.lnp = lnp
