@@ -34,7 +34,7 @@ import linna
 extensions = ['sphinx.ext.autodoc', 'sphinx.ext.viewcode', 'sphinx.ext.napoleon', 'sphinx.ext.autosummary', 'nbsphinx', 'autoapi.extension']
 autosummary_generate = True
 autoapi_dirs = ['../linna']
-autoapi_ignore=['*/HMCSampler.py', '*/train_gpu.py', '*/sampler.py', '*/cosmolike_run.py', '*/predictor_gpu.py']
+autoapi_ignore=['*/HMCSampler.py', '*/train_gpu.py', '*/sampler.py', '*/cosmolike_run.py', '*/predictor_gpu.py', "*/gpuscript.py"]
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
