@@ -3,6 +3,7 @@ import pyDOE2
 import sample_generator as sg
 from copy import deepcopy
 import os
+from predictor_gpu import *
 from linna.predictor_gpu import * 
 import glob
 import torch

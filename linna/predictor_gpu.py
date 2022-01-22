@@ -207,7 +207,7 @@ class Predictor:
                 newmodel = copy.deepcopy(self.model)
                 optimizer = torch.optim.AdamW(newmodel.parameters(), lr=1E-4, weight_decay=1E-4)
                 lr_finder = LRFinder(newmodel, optimizer, loss_fn, device=self.device)
-                lr_finder.range_test(dataset, val_loader=val_dataset, end_lr=5E-1, num_iter=100)
+                lr_finder.range_test(dataset, val_loader=val_dataset, end_lr=5E-2, num_iter=100)
                 fig = plt.figure()
                 lr_finder.plot(log_lr=True)
                 plt.savefig(os.path.join(self.outdir, "lr_tunning.png"))
@@ -266,7 +266,6 @@ class Predictor:
                     #with self.model.join():
                         loss = loss_fn(y_pred, y_target)
                         all_loss = [torch.zeros_like(loss) for _ in range(size)]
-                        #gather(loss, tensor_list=all_loss, root=0, group=None)
                         loss.backward()
                         #print(y_pred.shape, y_target.shape)
                         #if rank==0:
@@ -358,6 +357,9 @@ class Predictor:
                                 if lr>2E-6:
                                     print("learning rate too large: {0}".format(lr), flush=True)
                                     self.optim.param_groups[ind]['lr'] = lr/2.
+                        if not (np.isnan(val_metrics[-1][0])):
+                            if (val_metrics[-1][0]-old>5*old):
+                                val_metrics[-1][0] = old
                         #else:
                         #    for param_group in self.optim.param_groups:
                         #        lr = param_group['lr']

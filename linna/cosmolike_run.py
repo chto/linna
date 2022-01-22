@@ -117,12 +117,36 @@ class Model_func:
             data = np.zeros_like(np.where(self.mask>0)[0])
         return data
 
+def submitgpujob(allargs):
+    outdir = allargs['outdir']
+    qos = allargs['qos']
+    time = allargs['time'] 
+    if not os.path.isdir(outdir):
+        os.makedirs(outdir)
+    joboutdir = os.path.join(outdir, "out/")
+    if not os.path.isdir(joboutdir):
+        os.makedirs(joboutdir)
+    jobfile = os.path.join(outdir, "gpujob.sh")
+    with open(jobfile, 'w') as fh:
+        fh.writelines("#!/bin/bash\n")
+        fh.writelines("#SBATCH --job-name=gpu\n")
+        fh.writelines("#SBATCH --output={0}/out.dat".format(joboutdir))
+        fh.writelines("#SBATCH --error={0}/err.dat".format(joboutdir))
+        fh.writelines("#SBATCH --time={0}\n".format(time))
+        fh.writelines("#SBATCH --mem=4000\n")
+        fh.writelines("#SBATCH --gres gpu:1\n")
+        fh.writelines("#SBATCH -C GPU_BRD:GEFORCE\n")
+        fh.writelines("#SBATCH -p {0}\n".format(qos))
+        fh.writelines("srun python {0} {1}\n".format(os.path.join(os.path.dirname(os.path.abspath(__file__)), "gpuscript.py"), outdir))
+    os.system("sbatch %s" %jobfile)
+    
 
 def main():
     import time
     start = time.time()
     method = sys.argv[1]
     params = util_chto.chto_yamlload(sys.argv[3], parent_dir=sys.argv[4])         
+
     outdir = params['outdir']
     if not os.path.isdir(outdir):
         try:
@@ -141,6 +165,7 @@ def main():
     ntautolArr =  params['ntautolArr']
     temperatureArr =   params['temperatureArr']
     nnmodel_in = eval(params['nnmodel'])
+
 
     params['mask_file'] = os.path.join(outdir, "mask.dat")
     
@@ -205,10 +230,22 @@ def main():
             sys.exit(0)
     if pool is not None:
         if pool.is_master():
+
+            if 'automaticgpu' in params:
+                params['automaticgpu']['outdir'] = params['outdir']
+                submitgpujob(params['automaticgpu'])
+                gpunode = 'automaticgpu'
             ml_sampler_core(ntrainArr, nvalArr, nkeepArr, ntimesArr, ntautolArr, outdir, theory, priors, data, cov,  init, pool, nwalkers, device, dolog10index=[0,1], ypositive=False, temperatureArr=temperatureArr, omegab2cut=[3,5,0.005,0.039], docuda=False, tsize=tsize, gpunode=gpunode, nnmodel_in=nnmodel_in, params=params, method=method)
             end = time.time() 
             print("Runtime of the program is end - start", end-start)
             np.save(outdir+"/time.npy", end-start)
+            if 'automaticgpu' in params:
+                gpufile = os.path.join(outdir, "gpunodeinfo.pkl")
+                with open(gpufile, 'rb') as f:
+                    gpuinfo = pickle.load(f)
+                jobid = gpuinfo["jobid"]
+                os.system("scancel {0}".format(jobid))
+
 
     if pool is not None:
         pool.close()

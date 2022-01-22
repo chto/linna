@@ -555,6 +555,35 @@ class NN_samplerv1:
             total_sample=x.shape[0]
         return x[:Nsamples]
 
+
+    def gensample_chain_randomsample(self, Nsamples, chain_in, nsigma, omegab2cut=None):
+        """
+
+        Generate parameters for training and validation from a chain using latin hyper cube.
+        Args:
+            Nsamples (int): number of samples to be generated. 
+            chain_in (ndarray): a mcmc chain.
+            nsigma (int): up to this number an mcmc chain is generated 
+            omegab2cut (list of int): 2 elements containing the lower and upper limits of omegab*h^2  
+        Returns:
+            ndarray: a 2d array containing data with float type. Parameters for training and validation  
+        """
+
+        chain = deepcopy(chain_in)
+        prior_in = deepcopy(self.prior_range)
+        Nsamples=int(Nsamples)
+        total_sample=0
+
+        if omegab2cut is not None:
+            ombh2 = chain[:,omegab2cut[0]]*chain[:, omegab2cut[1]]**2
+            keep = (ombh2>omegab2cut[2])&(ombh2<omegab2cut[3])
+            chain=chain[keep]
+        for i in range(chain.shape[1]):
+            keep = (chain[:, i]>prior_in[i][0])&(chain[:, i]<prior_in[i][1])
+            chain=chain[keep]
+        np.random.seed(self.seed)
+        return chain[np.random.randint(0, len(chain), Nsamples)]
+
     def emcee_sample(self, log_prob, ndim, nwalkers, init, pool, transform, ntimes=50, tautol=0.01, dlnp=None, ddlnp=None):
         """
 
@@ -742,7 +771,7 @@ def generate_training_point(theory, nnsampler, pool, outdir, ntrain, nval, chain
                 if options==0:
                     samples = nnsampler.gensample_chain(ntrain, chain, nsigma, omegab2cut=omegab2cut)
                 elif options==1:
-                    samples = chain[np.random.randint(0, len(chain), ntrain)]
+                    samples = nnsampler.gensample_chain_randomsample(ntrain, chain, nsigma, omegab2cut=omegab2cut)
                 else:
                     print("options : {0} not recognized".format(options))
                     assert(0)
@@ -755,7 +784,7 @@ def generate_training_point(theory, nnsampler, pool, outdir, ntrain, nval, chain
                 if options==0:
                     samples = nnsampler.gensample_chain(nval, chain, nsigma, omegab2cut=omegab2cut)
                 elif options==1:
-                    samples = chain[np.random.randint(0, len(chain), nval)]
+                    samples = nnsampler.gensample_chain_randomsample(nval, chain, nsigma, omegab2cut=omegab2cut)
                 else:
                     print("options : {0} not recognized".format(options))
                     assert(0)
@@ -868,6 +897,14 @@ def train_NN( nnsampler, cov, inv_cov, sigma, outdir_in, outdir_list,data, dolog
                 for item in bad_y:
                     val_y = np.delete(val_y,item,0)
                     val_x = np.delete(val_x,item,0)
+        
+        else:
+            train_y[np.where(train_y>1E10)] = 1E10
+            train_y[np.where(train_y<-1E5)] = -1E5
+            val_y[np.where(val_y>1E8)] = 1E8
+            val_y[np.where(val_y<-1E5)] = -1E5
+            train_y_last[np.where(train_y_last>1E10)] = 1E10
+            train_y_last[np.where(train_y_last<-1E5)] = -1E5
         
         X_mean = torch.tensor(XT1(train_x).mean(axis=0), dtype=torch.float32).to(device)
         X_std = torch.tensor(XT1(train_x).std(axis=0), dtype=torch.float32).to(device)

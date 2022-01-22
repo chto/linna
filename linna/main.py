@@ -159,6 +159,14 @@ def ml_sampler_core(ntrainArr, nvalArr, nkeepArr, ntimesArr, ntautolArr, outdir,
             pickle.dump([nnsampler, cov, inv_cov, sigma, outdir_in, outdir_list, data, dolog10index, ypositive, False, 2, temperature, docuda, None, 1, nnmodel_in, params], f) 
             f.close()
             if not os.path.isfile(outdir_list[-1] + "/finish.pkl"): 
+                if gpunode == 'automaticgpu':
+                    while(True):
+                        gpufile = os.path.join(outdir, "gpunodeinfo.pkl")
+                        if os.path.isfile(gpufile):
+                            with open(gpufile, 'rb') as f:
+                                gpuinfo = pickle.load(f)
+                            gpunode = gpuinfo["nodename"]
+                            break 
                 if gpunode is not None:
                     print("running gpu on {0}".format(gpunode), flush=True)
                     os.system("cat {2}/train_gpu.py | ssh {0} python - {1} {3}".format(gpunode, outdir_list[-1], os.path.dirname(os.path.abspath(__file__)), "cuda"))
