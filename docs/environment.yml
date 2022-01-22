@@ -4,6 +4,7 @@ channels:
     - anaconda
 
 dependencies:
+    - pandoc
     - python==3.9
     - pip:
         - pyyaml
