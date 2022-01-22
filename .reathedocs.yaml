@@ -16,6 +16,9 @@ version: 2
     # golang: "1.17"
 
 # Build documentation in the docs/ directory with Sphinx
+conda:
+    file: docs/environment.yml
+
 sphinx:
    configuration: docs/conf.py
 
