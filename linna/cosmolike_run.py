@@ -121,6 +121,7 @@ def submitgpujob(allargs):
     outdir = allargs['outdir']
     qos = allargs['qos']
     time = allargs['time'] 
+    gpuconstraint = allargs['gpuconstraint']
     if not os.path.isdir(outdir):
         os.makedirs(outdir)
     joboutdir = os.path.join(outdir, "out/")
@@ -134,8 +135,10 @@ def submitgpujob(allargs):
         fh.writelines("#SBATCH --error={0}/err.dat".format(joboutdir))
         fh.writelines("#SBATCH --time={0}\n".format(time))
         fh.writelines("#SBATCH --mem=4000\n")
+        fh.writelines("#SBATCH -n 1\n")
         fh.writelines("#SBATCH --gres gpu:1\n")
-        fh.writelines("#SBATCH -C GPU_BRD:GEFORCE\n")
+        fh.writelines("#SBATCH  --constraint=\"{0}\"\n".format(gpuconstraint))
+        fh.writelines("#SBATCH  --gpu_cmode=shared\n")
         fh.writelines("#SBATCH -p {0}\n".format(qos))
         fh.writelines("srun python {0} {1}\n".format(os.path.join(os.path.dirname(os.path.abspath(__file__)), "gpuscript.py"), outdir))
     os.system("sbatch %s" %jobfile)
