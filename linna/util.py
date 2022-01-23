@@ -459,6 +459,7 @@ class NN_samplerv1:
         """
         
         Generate predicted data vector from a set of parameters 
+
         Args:
             samples (ndarray): 2d array containing data with float type. Set of parameters in each row 
             model (function): a function that take a row of samples, args and kwargs and return the predicted data vector  
@@ -483,6 +484,7 @@ class NN_samplerv1:
         """
 
         Generate parameters for training and validation using latin hypercube.
+
         Args:
             Nsamples (int): number of samples to be generated. 
             omegab2cut (list of int): 2 elements containing the lower and upper limits of omegab*h^2  
@@ -560,6 +562,7 @@ class NN_samplerv1:
         """
 
         Generate parameters for training and validation from a chain using latin hyper cube.
+
         Args:
             Nsamples (int): number of samples to be generated. 
             chain_in (ndarray): a mcmc chain.
@@ -588,6 +591,7 @@ class NN_samplerv1:
         """
 
         Generate MCMC chains using emcee.
+
         Args:
             log_prob (function): function of posterior. 
             ndim (int): the dimension of posterior 
@@ -609,6 +613,7 @@ class NN_samplerv1:
         """
 
         Generate MCMC chains using zeus.
+
         Args:
             log_prob (function): function of posterior. 
             ndim (int): the dimension of posterior 

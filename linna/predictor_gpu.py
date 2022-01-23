@@ -207,7 +207,7 @@ class Predictor:
                 newmodel = copy.deepcopy(self.model)
                 optimizer = torch.optim.AdamW(newmodel.parameters(), lr=1E-4, weight_decay=1E-4)
                 lr_finder = LRFinder(newmodel, optimizer, loss_fn, device=self.device)
-                lr_finder.range_test(dataset, val_loader=val_dataset, end_lr=5E-2, num_iter=100)
+                lr_finder.range_test(dataset, val_loader=val_dataset, end_lr=5E-3, num_iter=100)
                 fig = plt.figure()
                 lr_finder.plot(log_lr=True)
                 plt.savefig(os.path.join(self.outdir, "lr_tunning.png"))
@@ -331,8 +331,7 @@ class Predictor:
 
 
                     if (np.isnan(val_metrics[-1][0])) or (val_metrics[-1][0]>1E10) or ((val_metrics[-1][0]-old>5*old) and (i!=0)) or ((loss-told>5*told) and (i!=0)) :
-
-                        #print("x: {0}\n, x_trans: {1} \n, y_pred: {2} \n, y_pred_trans: {4}\n, y_target: {3}\n".format(X, self.X_transform(X), y_pred, y_target, self.model(self.X_transform(X))), flush=True)
+                        #print( (val_metrics[-1][0]-old>5*old), ((loss-told>5*told)), flush=True)
                         for ind, param_group in enumerate(self.optim.param_groups):
                             lr = param_group['lr']
                         #self.model = self.model_old

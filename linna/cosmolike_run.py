@@ -131,8 +131,8 @@ def submitgpujob(allargs):
     with open(jobfile, 'w') as fh:
         fh.writelines("#!/bin/bash\n")
         fh.writelines("#SBATCH --job-name=gpu\n")
-        fh.writelines("#SBATCH --output={0}/out.dat".format(joboutdir))
-        fh.writelines("#SBATCH --error={0}/err.dat".format(joboutdir))
+        fh.writelines("#SBATCH --output={0}/out.dat\n".format(joboutdir))
+        fh.writelines("#SBATCH --error={0}/err.dat\n".format(joboutdir))
         fh.writelines("#SBATCH --time={0}\n".format(timein))
         fh.writelines("#SBATCH --mem=4000\n")
         fh.writelines("#SBATCH -n 1\n")
