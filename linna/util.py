@@ -76,11 +76,21 @@ def _dummy_callback(x):
     pass 
 if not nompi:
     class chtoPool(MPIPool):
+        """
+        A reimplimentation of ``schwimmbad.MPIPool`` that will not broacast redundant function
+        """
         def __init__(self, comm=None):
+            """
+            Args:
+                comm (mpi4py.comm): an MPI communicator
+            """
             super(chtoPool, self).__init__(comm, use_dill=False)
             self.noduplicate=False
             self.worker_already_get_func_list=[]
         def wait(self):
+            """
+            Walkers will listen to the main process
+            """
             if self.is_master():
                 return
 
@@ -132,27 +142,25 @@ if not nompi:
             iterable. The results are returned in the expected order (symmetric with
             ``tasks``).
 
-            Parameters
-            ----------
-            worker : callable
-                A function or callable object that is executed on each element of
-                the specified ``tasks`` iterable. This object must be picklable
-                (i.e. it can't be a function scoped within a function or a
-                ``lambda`` function). This should accept a single positional
-                argument and return a single object.
-            tasks : iterable
-                A list or iterable of tasks. Each task can be itself an iterable
-                (e.g., tuple) of values or data to pass in to the worker function.
-            callback : callable, optional
-                An optional callback function (or callable) that is called with the
-                result from each worker run and is executed on the master process.
-                This is useful for, e.g., saving results to a file, since the
-                callback is only called on the master thread.
+            Args:
+                worker (callable):
+                    A function or callable object that is executed on each element of
+                    the specified ``tasks`` iterable. This object must be picklable
+                    (i.e. it can't be a function scoped within a function or a
+                    ``lambda`` function). This should accept a single positional
+                    argument and return a single object.
+                tasks (iterable):
+                    A list or iterable of tasks. Each task can be itself an iterable
+                    (e.g., tuple) of values or data to pass in to the worker function.
+                callback (callable, optional):
+                    An optional callback function (or callable) that is called with the
+                    result from each worker run and is executed on the master process.
+                    This is useful for, e.g., saving results to a file, since the
+                    callback is only called on the master thread.
 
-            Returns
-            -------
-            results : list
-                A list of results from the output of each ``worker()`` call.
+            Returns:
+                list:
+                    A list of results from the output of each ``worker()`` call.
             """
 
             # If not the master just wait for instructions.
@@ -201,12 +209,25 @@ if not nompi:
 
             return resultlist
         def noduplicate_close(self):
+            """
+            Reset no duplicate function
+            """
             self.worker_already_get_func_list=[]
             self.noduplicate = False
             workerset = self.workers.copy()
             for tid, workers in enumerate(workerset):
                 self.comm.send(["reset", ["reset", None]], dest=workers, tag=tid)
         def bcast(self, worker, args, sizemax):
+            """
+            Broadcast function to all the workers:
+
+            Args:    
+                worker (callable): a function which you want to parallelize 
+                args (list): list of things to be passed to worker
+                sizemax (int): number of worker you wish to use 
+                
+            
+            """
             workerset = self.workers.copy()
             for tid, workers in enumerate(workerset):
                 if workers < sizemax:
@@ -247,21 +268,47 @@ class chtoMultiprocessPool:
     def is_master(self):
         return True
 
-#
-
-##
-
 def gauss2unif(x):
+    """
+        transform a guaaisan distributed random variable to a uniformly distributed variable
+
+        Args:
+            x (torch.tensor): input 
+        Returns:
+            torch.tensor: output
+    """
     return 0.5 * (1 + torch.erf(x / np.sqrt(2)))
 def invgauss2unif(x):
+    """
+        inverse transform a guaaisan distributed random variable to a uniformly distributed variable
+
+        Args:
+            x (torch.tensor): input 
+        Returns:
+            torch.tensor: output
+    """
     return np.sqrt(2)*torch.erfinv(2*x-1)
 
 class Transform:
+    """
+        Transform parameters so that all the prior is gaussian with zero mean and unit variance
+    """
     def __init__(self, priors):
+        """
+        Args:
+            priors (dict): a dictionary of ``2d list``. Each key can be either ``gauss`` indicating gaussian prior or ``flat`` indicating uniforma prior. For entries with key==``gauss``, the first item indicates the mean and the second item indicates the 1 sigma error. For entries with ``flat`` key, the first item indicates the lower limit and the second item indicates the upper limit.   
+        """
         self.priors = priors
     def __call__(self, x, returnnumpy=True, inputnumpy=True):
         """
         Transform perameters so that all the prior is gaussian with zero mean and unit variance 
+        
+        Args:
+            x (nd array or torch array): array of parameters 
+            returnnumpy (bool) : If true, then the return value will be in ``numpy`` array. Otherwise, the return value will be in ``torch`` tensor 
+            inputnumpy  (bool) : If true, the return value should be in ``numpy`` array. Otherwise, the return value should be in ``torch`` tensor 
+        Returns:
+            numpy array or torch tensor: depends on the input parameters ``returnnumpy`` 
         """
         transformed_x = []
         if inputnumpy:
@@ -279,11 +326,23 @@ class Transform:
             return torch.stack(transformed_x).T.squeeze()
 
 class invTransform:
+    """
+        Inverse the ```Transform``` function. 
+    """
     def __init__(self, priors):
+        """
+        Args:
+            priors (dict): a dictionary of ``2d list``. Each key can be either ``gauss`` indicating gaussian prior or ``flat`` indicating uniforma prior. For entries with key==``gauss``, the first item indicates the mean and the second item indicates the 1 sigma error. For entries with ``flat`` key, the first item indicates the lower limit and the second item indicates the upper limit.   
+        """
         self.priors = priors
     def __call__(self, x, returnnumpy=True, inputnumpy=True):
         """
-        Transform perameters so that all the prior is gaussian with zero mean and unit variance 
+        Args:
+            x (nd array or torch array): array of parameters 
+            returnnumpy (bool) : If true, then the return value will be in ``numpy`` array. Otherwise, the return value will be in ``torch`` tensor 
+            inputnumpy  (bool) : If true, the return value should be in ``numpy`` array. Otherwise, the return value should be in ``torch`` tensor 
+        Returns:
+            numpy array or torch tensor: depends on the input parameters ``returnnumpy`` 
         """
         transformed_x = []
         if inputnumpy:
@@ -301,7 +360,15 @@ class invTransform:
             return torch.stack(transformed_x).T.squeeze()
 
 class ArrayDataset(Dataset):
+    """
+        prepare data for torch
+    """
     def __init__(self, X, y):
+        """
+        Args:
+            X (nd array): numpy array
+            y (nd array): numpy array
+        """
         self.X = X.astype(np.float32)
         self.y = y.astype(np.float32)
         
@@ -520,6 +587,7 @@ class NN_samplerv1:
         """
 
         Generate parameters for training and validation from a chain using latin hyper cube.
+
         Args:
             Nsamples (int): number of samples to be generated. 
             chain_in (ndarray): a mcmc chain.
