@@ -169,30 +169,30 @@ def main():
     temperatureArr =   params['temperatureArr']
     nnmodel_in = eval(params['nnmodel'])
 
-
-    params['mask_file'] = os.path.join(outdir, "mask.dat")
-    
-    maskfile = params['mask_file']
-    if 'DD_vector' in params.keys():
-        try:
-            DD_vector = np.loadtxt(os.path.join(params['base_dir'],params["DD_vector"]))[:,1]
-            DD_cut = params['DD_cut']
-        except:
-            DD_vector=None
-            DD_cut = None
-    else:
-        DD_vector = None
-        DD_cut = None
-    if rank==0:
-        run_4x2ptN_wrapper.make_mask_4x2ptN(maskfile, params, notinitialized=True, DD_vector=DD_vector, DD_cut=DD_cut)
-    else:
-        while(1):
+    if "mask_file" not in params:
+        params['mask_file'] = os.path.join(outdir, "mask.dat")
+        maskfile = params['mask_file']
+        if 'DD_vector' in params.keys():
             try:
-                if len(np.loadtxt(maskfile))>0:
-                    break
+                DD_vector = np.loadtxt(os.path.join(params['base_dir'],params["DD_vector"]))[:,1]
+                DD_cut = params['DD_cut']
             except:
-                pass
-    
+                DD_vector=None
+                DD_cut = None
+        else:
+            DD_vector = None
+            DD_cut = None
+        if rank==0:
+            run_4x2ptN_wrapper.make_mask_4x2ptN(maskfile, params, notinitialized=True, DD_vector=DD_vector, DD_cut=DD_cut)
+        else:
+            while(1):
+                try:
+                    if len(np.loadtxt(maskfile))>0:
+                        break
+                except:
+                    pass
+    else:
+        maskfile = params['mask_file']
     init_cosmolike = cosmolike_libs_real_mpp_cluster.Initlized_cosmolike(bytes(maskfile, encoding='utf-8'), params)
     init_cosmolike.set_cosmolike()
     priors, init = get_prior_dic_init(params)
@@ -219,7 +219,18 @@ def main():
             cov[int(item[0]), int(item[1])] = item[-2]+item[-1]
             cov[int(item[1]), int(item[0])] = item[-2]+item[-1]
         return cov
-    cov = readcov(np.loadtxt(params['base_dir']+params['cov_file']))[:,mask][mask,:]
+
+    cov = readcov(np.loadtxt(params['base_dir']+params['cov_file']))
+    if len(mask)!=len(cov):
+        print("mask size not the same as cov, mask is fixed to match cov", flush=True)
+        if len(mask)>len(cov):
+            mask = mask[:len(cov)]
+        else:
+            masknew = np.zeros(len(cov))>1
+            masknew[:len(mask)] = mask
+            mask = masknew
+
+    cov = cov[:,mask][mask,:]
 
     data = np.loadtxt(params['base_dir']+params['data_file'])[mask,1]
     inv_cov = np.linalg.inv(cov)

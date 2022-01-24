@@ -409,7 +409,6 @@ class Y_transform_data:
 
         Args:
             path (string): name of the pickle file
-
         """
         with open(path, 'wb') as f:
             new = deepcopy(self)
@@ -446,15 +445,29 @@ class Y_invtransform_data:
             pickle.dump(new,f , pickle.HIGHEST_PROTOCOL)
             
 class X_transform_class:
+    """
+    Transform parameters from x --> (x-mean)/std or x --> (log10(x)-mean)/std
+    """
     def __init__(self, X_mean, X_std, device, dolog10index=None):
-        
+        """
+        Args: 
+            X_mean (torch tensor): mean of data vector 
+            X_std  (torch tensor): std of data vector 
+            device (string): "cpu" or "cuda"
+            dolog10index (list, optional): which index you wish to have an additional log10 transform
+        """
         self.X_mean = X_mean
         self.X_std = X_std
         self.dev = device
         self.dolog10index = dolog10index 
         
     def __call__(self, X):
-        #X= torch.tensor(X,dtype=torch.float32)
+        """
+        Args:
+            X (torch tensor): array with first dimension the same as the length of X_mean 
+        Returns:
+            torch tensor 
+        """
         X1 = X.clone()
         if self.dolog10index is not None:
             for ind in self.dolog10index:
@@ -465,6 +478,12 @@ class X_transform_class:
         return (X1 - self.X_mean[None,:].to(self.dev)) / self.X_std[None,:].to(self.dev)
     
     def pickle(self, path):
+        """
+        Pickle the transform
+
+        Args:
+            path (string): name of the pickle file
+        """
         with open(path, 'wb') as f:
             # Pickle the 'data' dictionary using the highest protocol available.
             new = deepcopy(self)
@@ -473,24 +492,49 @@ class X_transform_class:
                         
 class Y_transform_class:
     def __init__(self, y_mean, y_std, dev, ypositive=False):
+        """
+        Transform data vector: y-->y*std+mean or np.exp(y-->y*std+mean)
+
+        Args:
+            y_mean (torch tensor): mean
+            y_std (torch tensor): standard deviation 
+            dev (string): cuda or cpu
+            ypositive (bool): whether assume all data vector is possive. If true, we do np.exp(y-->y*std+mean). If false, we do y*std+mean 
+        """
+
         self.y_mean = y_mean
         self.y_std = y_std
         self.dev = dev
         self.ypositive = ypositive
         
     def __call__(self, y):
+        """
+        Args:
+            y (torch tensor): data 
+        Returns:
+            torch tensor: transformed data 
+        """
         if self.ypositive:
             return torch.exp(y * self.y_std[None,:].to(self.dev) + self.y_mean[None,:].to(self.dev))
         else:
             return y * self.y_std[None,:].to(self.dev) + self.y_mean[None,:].to(self.dev)
     
     def pickle(self, path):
+        """
+        Pickle the transform
+
+        Args:
+            path (string): name of the pickle file
+        """
         with open(path, 'wb') as f:
             new = deepcopy(self)
             new.dev='cpu'
             pickle.dump(new,f , pickle.HIGHEST_PROTOCOL)
 
 class Y_invtransform_class:
+    """
+    Transform data vector: y-->(y-mean)/std or (np.log(y)-mean)/std  (API tis the same as `` Y_transform_class``
+    """
     def __init__(self, y_mean, y_std, data_tensor, dev, ypositive=False):
         self.y_mean = y_mean
         self.y_std = y_std
@@ -504,12 +548,20 @@ class Y_invtransform_class:
         else:
             return (y-self.y_mean[None,:].to(self.dev))/self.y_std[None,:].to(self.dev)
     def transform_cov(self, cov):
+        """
+        Transform the associated covariance matrix if one transform the data vector by 1/sigma
+
+        Args:
+            cov (2d array): covariance matrix
+
+        Returns:
+            torch(2d array): transformed covariance matrix
+        """
         if self.ypositive:
            expected = self.data_tensor 
            cov0 = (torch.diag(1/expected.type(torch.float64)).inner(cov).inner(torch.diag(1/expected.type(torch.float64)))).to(self.dev)
            cov0[cov0<=-1] = 1E-10-1
            cov1 = torch.log(1+cov0)
-           #cov1 = cov0
            cov2 =  (torch.diag(1/self.y_std.type(torch.float64)).inner(cov1).inner(torch.diag(1/self.y_std.type(torch.float64)))).to(self.dev)
            return cov2
         else:
@@ -522,7 +574,9 @@ class Y_invtransform_class:
             pickle.dump(new,f , pickle.HIGHEST_PROTOCOL)
 
 class _FunctionWrapper(object):
-
+    """
+        Only for internal use
+    """
     def __init__(self, f, args, kwargs):
         self.f = f
         self.args = [] if args is None else args
@@ -530,7 +584,22 @@ class _FunctionWrapper(object):
 
     def __call__(self, x):
         return self.f(x, *self.args, **self.kwargs)
+
 def retrieve_model(outdir, inshape, outshape, nnmodel_in):
+    """
+    Retrieve the trained model
+
+    Args:
+        Outdir (string): directory of the outdir
+        inshape (int): input vector size of the model 
+        outshape (int): output vector size of the model 
+        nnmodel_in (callable): an function that work the same as the model. This function will be applied on the input datavector and work in combination with the model.
+
+    Returns:
+        model (linna.predictor_gpu.Predictor): model
+        y_invtransform_data (linna.util.Y_invtransform_data)
+        
+    """
     ####Retrive the model 
     with open(os.path.join(outdir,'y_invtransform_data.pkl'), 'rb') as f:
         y_invtransform_data = CPU_Unpickler(f).load()
@@ -545,6 +614,7 @@ def retrieve_model(outdir, inshape, outshape, nnmodel_in):
     model = predictor_gpu.Predictor(inshape, outshape, X_transform=X_transform, y_transform=y_transform,device='cpu', outdir=outdir, model = nnmodel)
     model.load_checkpoint()
     return model, y_invtransform_data
+
 class NN_samplerv1:
     """
     A class to perform neural network sampling for each iteration 
