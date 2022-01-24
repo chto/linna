@@ -491,6 +491,9 @@ class X_transform_class:
             pickle.dump(new,f , pickle.HIGHEST_PROTOCOL)
                         
 class Y_transform_class:
+    """
+    Transform data vector: y-->y*std+mean or np.exp(y-->y*std+mean)
+    """
     def __init__(self, y_mean, y_std, dev, ypositive=False):
         """
         Transform data vector: y-->y*std+mean or np.exp(y-->y*std+mean)
@@ -817,7 +820,20 @@ class NN_samplerv1:
         samp.sample(pool, max_n, 0,0,Madapt, outdir=self.outdir, overwrite=False, ntimes=50, method="nuts", incremental=True, progress=True)
 
 class Log_prob:
+    """
+    Class do loglikelihood
+    """
     def __init__(self, data_new, invcov_new, model, y_invtransform_data, transform, temperature, nograd=False):
+        """
+        Args:
+            data_new (array or torch tensor):
+            invcov_new (array or torch tensor):
+            model (linna.predictor_gpu.Predictor):
+            y_invtransform_data ():
+            transform: 
+            temperature:
+            nograd:
+        """
         if not torch.is_tensor(data_new):
             self.data_new = torch.from_numpy(data_new.astype(np.float32)).to("cpu").clone().requires_grad_()
         else:
