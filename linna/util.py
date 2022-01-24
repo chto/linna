@@ -964,9 +964,9 @@ class Loss_fn:
         Return:
             torch.float: loss 
         """
-            loss, _, _ = self.auxileryfunction(y_pred, y_target)
-            loss = torch.mean(loss)
-            return loss
+        loss, _, _ = self.auxileryfunction(y_pred, y_target)
+        loss = torch.mean(loss)
+        return loss
 
 class Val_metric_fn:
     """
