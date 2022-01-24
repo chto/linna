@@ -1020,6 +1020,21 @@ def lnprior(x):
     return -0.5 * torch.sum(x.square())
 
 def generate_training_point(theory, nnsampler, pool, outdir, ntrain, nval, chain=None, nsigma=1, omegab2cut=None, options=0):
+    """
+    Generate training point 
+
+    Args:
+        theory (callable): model  
+        nnsampler (``NN_samplerv1`` instance):
+        pool (``chtoPool`` instance): mpi pool
+        outdir (string): output directory 
+        ntrain (int): number of training data
+        nval (int): number of validation data
+        chain (array or None): if None: generate from prior, if and array: training sample will be generated using thie chain 
+        nsigma (int): if option ==0, this means we build a LH in nsignma region of the chain. 
+        omegab2cut (list or None): additional cut on omegabh2, if list, omegab2cut = [index of omegab, index of h, lower limit, upper limit]
+        options (int): if 0, generate using Latin Hypercube. If 1, random sample the chain
+    """
     if (pool is None) or pool.is_master():
         if not os.path.isdir(outdir):
             os.makedirs(outdir)
@@ -1068,6 +1083,9 @@ def generate_training_point(theory, nnsampler, pool, outdir, ntrain, nval, chain
             np.save(outdir+"val_samples_y.npy", val_y)
 
 def train_nn(outdir, model, train_x, train_y, val_x, val_y, X_transform, y_transform, loss_fn, val_metric_fn,dev = "cpu", verbose=False, retrain=True, pool=None, nocpu=False, size=0, rank=0, params=None):
+    """
+        Internal function
+    """
     if not retrain:
         if os.path.isfile(os.path.join(outdir, "best.pth.tar")):
             return
@@ -1101,10 +1119,16 @@ def train_nn(outdir, model, train_x, train_y, val_x, val_y, X_transform, y_trans
     return model
 
 def median_absolute_deviation(y, median, dim):
+    """
+        Internal function
+    """
     df = torch.abs(y-median)
     return df.median(axis=dim).values
 
 def train_NN( nnsampler, cov, inv_cov, sigma, outdir_in, outdir_list,data, dolog10index=None, ypositive=False, retrain=True, norder=2, temperature=None, docuda=False, pool=None, tsize=1, nnmodel_in=None, params=None):
+        """
+        Internal function
+        """
         #TrainNN
         if docuda:
             device = "cuda"
@@ -1199,7 +1223,22 @@ def train_NN( nnsampler, cov, inv_cov, sigma, outdir_in, outdir_list,data, dolog
         model = train_nn(outdir_in, nnsampler.model, train_x, train_y, val_x, val_y, X_transform, y_transform, loss_fn, val_metric_fn, dev=device, verbose=True, retrain=retrain, pool=pool, nocpu=docuda, size=tsize, params=params)
 
 def run_mcmc(nnsampler, outdir, method, ndim, nwalkers, init, log_prob, dlnp=None, ddlnp=None, pool=None, transform=None, ntimes=50, tautol=0.01):
-    #Run mcmc using the trained model 
+    """Run mcmc using the trained model 
+    
+    Args:
+        nnsampler (``NN_samplerv1`` instance)
+        outdir (string): output directory 
+        method (string): mcmc method, only emcee or zeus is supported
+        ndim (int): dimension of input parameters 
+        nwalkers(int): number of walkers 
+        init (array): numpy array with shape (nwalker, ndim) 
+        log_probi (callable): likelihood
+        pool (None or chtoPool): mpi pool
+        transform (Transform or None): function to transform input
+        ntimes (int): number of autocorrelation time
+        tautol (float): tolerance of autocorrelation time error
+
+    """
     samp_steps = 5
     samp_eps = 0.1
     if method == "hmc":
@@ -1215,6 +1254,9 @@ def run_mcmc(nnsampler, outdir, method, ndim, nwalkers, init, log_prob, dlnp=Non
         nnsampler._HMC_sample(log_prob, dlnp, ddlnp, ndim, nwalkers, init, pool, samp_steps, samp_eps, transform=transform)
 
 def logp_theory_data(samples, theory, data, invcov, logprior):
+    """
+        Internal function
+    """
     logpall = []
     for t, s in zip(theory, samples):
         d = t-data 
