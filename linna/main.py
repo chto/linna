@@ -225,8 +225,7 @@ def ml_sampler_core(ntrainArr, nvalArr, nkeepArr, ntimesArr, ntautolArr, outdir,
             chain_name = os.path.join(os.path.join(outdir, "iter_{0}/".format(len(ntrainArr)-1)), filename[:-3])
             if os.path.isfile(chain_name+".h5"):
                 chain_name = chain_name+".h5"
-                chain, log_prob_samples_x, reader = read_chain_and_cut(chain_name.format(len(ntrainArr)-1), nk, ntimes, method=method)
-                log_prob_samples_x = reader.get_log_prob(discard=0, flat=True, thin=1)
+                chain, log_prob_samples_x, reader = read_chain_and_cut(chain_name.format(len(ntrainArr)-1), nk, ntimes, method=method, flat=True)
             else:
                 chain_name = chain_name+".txt"
                 chain = np.loadtxt(chain_name)[-100000:,:-1]

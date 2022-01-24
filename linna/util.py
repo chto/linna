@@ -49,7 +49,7 @@ def get_good_walker_list(log_prob_samples):
     print(np.where(labels==best)[0], cluster_centers, labels)
     return np.where(labels==best)[0] 
 
-def read_chain_and_cut(chainname, nk, ntimes=20, walkercut=False, method="emcee"):
+def read_chain_and_cut(chainname, nk, ntimes=20, walkercut=False, method="emcee", flat=False):
     if method=="emcee":
         reader = emcee.backends.HDFBackend(chainname, read_only=True)
     elif method =="zeus":
@@ -70,6 +70,8 @@ def read_chain_and_cut(chainname, nk, ntimes=20, walkercut=False, method="emcee"
         good_walker_list = np.arange(0, len(log_prob_samples[0]))
     chain = chain[int(-1*nk):,good_walker_list,:].reshape(-1, len(chain[0,0]))
     log_prob_samples = log_prob_samples[int(-1*nk):, good_walker_list]
+    if flat:
+        log_prob_samples = log_prob_samples.reshape(-1,1)
     return chain, log_prob_samples, reader
 
 def _dummy_callback(x):
@@ -379,22 +381,58 @@ class ArrayDataset(Dataset):
         return self.X[i,:], self.y[i,:]
 
 class Y_transform_data:
+    """
+    Transform data vector from y-->y/sigma
+    """
     def __init__(self, sigma, device):
+    """
+    Args:
+        sigma (float): sigma 
+        device(string): "cpu" or "cuda"
+
+    """
         self.device= device
         self.sigma = torch.from_numpy(sigma.astype(np.float32)).to(device).clone().requires_grad_()
     
     def __call__(self, y):
+    """
+    Args:
+        y (torch tensor): data vector
+    Returns:
+        torch tensor: y/sigma
+    """
         return y/self.sigma[None,:]
     
     def pickle(self, path):
+    """
+    Pickle the transform
+
+    Args:
+        path (string): name of the pickle file
+
+    """
         with open(path, 'wb') as f:
             new = deepcopy(self)
             new.dev='cpu'
             pickle.dump(new,f , pickle.HIGHEST_PROTOCOL)
+
     def transform_cov(self, cov):
+    """
+    Transform the associated covariance matrix if one transform the data vector by 1/sigma
+
+    Args:
+        cov (2d array): covariance matrix
+
+    Returns:
+        torch(2d array): transformed covariance matrix
+    """
         return torch.diag(1/self.sigma.type(torch.float64)).inner(cov).inner(torch.diag(1/self.sigma.type(torch.float64)))
 
 class Y_invtransform_data:
+    """
+    Transform y to y*sigma 
+    See detail api in ``Y_transform_data``
+    """
     def __init__(self, sigma, device):
         self.sigma = torch.from_numpy(sigma.astype(np.float32)).to(device).clone().requires_grad_()
         self.device= device

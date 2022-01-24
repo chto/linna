@@ -134,10 +134,11 @@ def submitgpujob(allargs):
         fh.writelines("#SBATCH --output={0}/out.dat\n".format(joboutdir))
         fh.writelines("#SBATCH --error={0}/err.dat\n".format(joboutdir))
         fh.writelines("#SBATCH --time={0}\n".format(timein))
-        fh.writelines("#SBATCH --mem=4000\n")
+        #fh.writelines("#SBATCH --mem=4000\n")
         fh.writelines("#SBATCH -n 1\n")
         fh.writelines("#SBATCH --gres gpu:1\n")
         fh.writelines("#SBATCH  --constraint=\"{0}\"\n".format(gpuconstraint))
+        fh.writelines("#SBATCH --gpu_cmode=shared\n")
         fh.writelines("#SBATCH -p {0}\n".format(qos))
         fh.writelines("srun python {0} {1} {2}\n".format(os.path.join(os.path.dirname(os.path.abspath(__file__)), "gpuscript.py"), outdir, timein))
     os.system("sbatch %s" %jobfile)
@@ -195,11 +196,15 @@ def main():
     init_cosmolike = cosmolike_libs_real_mpp_cluster.Initlized_cosmolike(bytes(maskfile, encoding='utf-8'), params)
     init_cosmolike.set_cosmolike()
     priors, init = get_prior_dic_init(params)
-    try:
-        pool = chtoPool(comm)
-    except:
-        print("no MPI", flush=True)
-        pool = None
+    if "omegab2cut" in params:
+        omegab2cut = params['omegab2cut']
+    else:
+        omegab2cut = [3,5,0.005,0.039]
+    #try:
+    pool = chtoPool(comm)
+    #except:
+    #    print("no MPI", flush=True)
+    #    pool = None
     tsize=1
     mask = np.loadtxt(maskfile)[:,1]
     mask = mask>0
@@ -237,7 +242,7 @@ def main():
                 params['automaticgpu']['outdir'] = params['outdir']
                 submitgpujob(params['automaticgpu'])
                 gpunode = 'automaticgpu'
-            ml_sampler_core(ntrainArr, nvalArr, nkeepArr, ntimesArr, ntautolArr, outdir, theory, priors, data, cov,  init, pool, nwalkers, device, dolog10index=[0,1], ypositive=False, temperatureArr=temperatureArr, omegab2cut=[3,5,0.005,0.039], docuda=False, tsize=tsize, gpunode=gpunode, nnmodel_in=nnmodel_in, params=params, method=method)
+            ml_sampler_core(ntrainArr, nvalArr, nkeepArr, ntimesArr, ntautolArr, outdir, theory, priors, data, cov,  init, pool, nwalkers, device, dolog10index=[0,1], ypositive=False, temperatureArr=temperatureArr, omegab2cut=omegab2cut, docuda=False, tsize=tsize, gpunode=gpunode, nnmodel_in=nnmodel_in, params=params, method=method)
             end = time.time() 
             print("Runtime of the program is end - start", end-start)
             np.save(outdir+"/time.npy", end-start)
