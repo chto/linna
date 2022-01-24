@@ -35,6 +35,7 @@ extensions = ['sphinx.ext.autodoc', 'sphinx.ext.viewcode', 'sphinx.ext.napoleon'
 autosummary_generate = True
 autoapi_dirs = ['../linna']
 autoapi_ignore=['*/HMCSampler.py', '*/train_gpu.py', '*/sampler.py', '*/cosmolike_run.py', '*/predictor_gpu.py', "*/gpuscript.py"]
+autodoc_default_flags=['members', 'undoc-members', 'private-members', 'special-members', 'inherited-members', 'show-inheritance']
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
