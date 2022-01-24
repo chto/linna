@@ -385,47 +385,47 @@ class Y_transform_data:
     Transform data vector from y-->y/sigma
     """
     def __init__(self, sigma, device):
-    """
-    Args:
-        sigma (float): sigma 
-        device(string): "cpu" or "cuda"
+        """
+        Args:
+            sigma (float): sigma 
+            device(string): "cpu" or "cuda"
 
-    """
+        """
         self.device= device
         self.sigma = torch.from_numpy(sigma.astype(np.float32)).to(device).clone().requires_grad_()
     
     def __call__(self, y):
-    """
-    Args:
-        y (torch tensor): data vector
-    Returns:
-        torch tensor: y/sigma
-    """
+        """
+        Args:
+            y (torch tensor): data vector
+        Returns:
+            torch tensor: y/sigma
+        """
         return y/self.sigma[None,:]
     
     def pickle(self, path):
-    """
-    Pickle the transform
+        """
+        Pickle the transform
 
-    Args:
-        path (string): name of the pickle file
+        Args:
+            path (string): name of the pickle file
 
-    """
+        """
         with open(path, 'wb') as f:
             new = deepcopy(self)
             new.dev='cpu'
             pickle.dump(new,f , pickle.HIGHEST_PROTOCOL)
 
     def transform_cov(self, cov):
-    """
-    Transform the associated covariance matrix if one transform the data vector by 1/sigma
+        """
+        Transform the associated covariance matrix if one transform the data vector by 1/sigma
 
-    Args:
-        cov (2d array): covariance matrix
+        Args:
+            cov (2d array): covariance matrix
 
-    Returns:
-        torch(2d array): transformed covariance matrix
-    """
+        Returns:
+            torch(2d array): transformed covariance matrix
+        """
         return torch.diag(1/self.sigma.type(torch.float64)).inner(cov).inner(torch.diag(1/self.sigma.type(torch.float64)))
 
 class Y_invtransform_data:
