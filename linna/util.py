@@ -826,13 +826,13 @@ class Log_prob:
     def __init__(self, data_new, invcov_new, model, y_invtransform_data, transform, temperature, nograd=False):
         """
         Args:
-            data_new (array or torch tensor):
-            invcov_new (array or torch tensor):
-            model (linna.predictor_gpu.Predictor):
-            y_invtransform_data ():
-            transform: 
-            temperature:
-            nograd:
+            data_new (array or torch tensor): data vector
+            invcov_new (array or torch tensor): inverse of the covariance matrix 
+            model (linna.predictor_gpu.Predictor): model
+            y_invtransform_data (linna.util.Y_invtransform_data): data transform
+            transform (``Transform``): transform parameter
+            temperature (float): inflat the likelihood by L--> L/T
+            nograd (bool): whether to retain gradiant information 
         """
         if not torch.is_tensor(data_new):
             self.data_new = torch.from_numpy(data_new.astype(np.float32)).to("cpu").clone().requires_grad_()
@@ -848,7 +848,18 @@ class Log_prob:
         self.T = temperature
         self.no_grad = nograd
         self.noduplicate=True
-    def __call__(self, x, returntorch=True, inputnumpy=True, returngrad=True):
+
+    def __call__(self, x, returntorch=True, inputnumpy=True):
+        """
+        Args:
+            x (numpy array or tensor):
+            returntorch (bool): whether to return torch tensor or numpy array
+            inputnumpy (bool): whether the input is in numpy array or torch tensor
+        
+        Returns:
+            tensor or numpy array
+
+        """
         if not torch.is_tensor(x):
             x=torch.from_numpy(x.astype(np.float32)).to("cpu").clone().requires_grad_()
         x_in  = self.transform(x,inputnumpy=False, returnnumpy=False)
@@ -865,6 +876,9 @@ class Log_prob:
                 return like[0][0].detach().numpy() 
    
 class Dlnp:
+    """
+    Class do derivative of loglikelihood (API the same as ``Log_prob``)
+    """
     def __init__(self, data_new, invcov_new, model, y_invtransform_data, transform, temperature):
         self.log_prob = Log_prob(data_new, invcov_new, model, y_invtransform_data, transform, temperature)
     def __call__(self, x, lnP=None, returntorch=None, inputnumpy=None):
@@ -876,6 +890,9 @@ class Dlnp:
         return grad.detach().numpy() 
 
 class Ddlnp:
+    """
+    Class do 2nd derivative of loglikelihood (API the same as ``Log_prob``)
+    """
     def __init__(self, data_new, invcov_new, model, y_invtransform_data, transform, temperature):
         self.log_prob = Log_prob(data_new, invcov_new, model, y_invtransform_data, transform, temperature)
     def __call__(self, x):
@@ -891,6 +908,9 @@ class Ddlnp:
 
 
 class Auxilleryfunc:
+    """
+    Class for internal use 
+    """
     def __init__(self, data_in, cov_tensor, inv_cov_tensor, y_transform_data, y_inv_transform, device):
         self.inv_cov_tensor = inv_cov_tensor
         self.transformed_cov = cov_tensor 
@@ -921,14 +941,37 @@ class Auxilleryfunc:
             return loss, chisqMd, chisqnnd
 
 class Loss_fn:
+    """
+    Class defined loss function 
+    """
     def __init__(self, data_in, cov_tensor, inv_cov_tensor, y_transform_data, y_inv_transform, device):
+        """
+        Args:
+            data_in (torch tensor): data vector
+            cov_tensor (torch tensor): covariance matrix 
+            inv_cov_tensor (torch tensor): inverse of the covariance matrix 
+            y_transform_data (linna.util.Y_transform_data): data transform
+            y_inv_transform (``Y_invtransform_class``):
+            device (string): cpu or cuda
+        """
         self.auxileryfunction = Auxilleryfunc(data_in, cov_tensor, inv_cov_tensor, y_transform_data, y_inv_transform, device)
     def __call__(self, y_pred, y_target):
+        """
+        Args:
+            y_pred (tensor): predicted data vector by nn
+            y_target (tensor): targeted data vector
+
+        Return:
+            torch.float: loss 
+        """
             loss, _, _ = self.auxileryfunction(y_pred, y_target)
             loss = torch.mean(loss)
             return loss
 
 class Val_metric_fn:
+    """
+    Class for validation metric (API the same as loss)
+    """
     def __init__(self, data_in, cov_tensor, inv_cov_tensor, y_transform_data, y_inv_transform, device):
         self.auxileryfunction = Auxilleryfunc(data_in, cov_tensor, inv_cov_tensor, y_transform_data, y_inv_transform, device)
     def __call__(self, y_pred,y_target):
@@ -937,9 +980,23 @@ class Val_metric_fn:
         return torch.tensor([torch.median(loss),torch.max(fracerr) ,torch.median(fracerr)])
 
 class LogPrior:
+    """
+    Priors handling
+    """
     def __init__(self, prior):
+        """
+        Args:
+            prior (list of dict): each entry is ['dist': [flat or gauss], 'arg1': lower bound for flat or mean for gauss, 'arg2': upper bound for flat or std for gauss]
+        """
         self.prior = prior 
     def __call__(self, xlist):
+        """
+        Args:
+            xlist (list): data 
+
+        Returns:
+            float: prior
+        """
         logp = 0
         for ind, x in enumerate(xlist):
             item = self.prior[ind]
@@ -954,6 +1011,9 @@ class LogPrior:
 
 
 def lnprior(x):
+    """
+    internal function
+    """
     return -0.5 * torch.sum(x.square())
 
 def generate_training_point(theory, nnsampler, pool, outdir, ntrain, nval, chain=None, nsigma=1, omegab2cut=None, options=0):
