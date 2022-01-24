@@ -579,6 +579,7 @@ class Y_invtransform_class:
 class _FunctionWrapper(object):
     """
         Only for internal use
+        :meta private:
     """
     def __init__(self, f, args, kwargs):
         self.f = f
@@ -910,6 +911,7 @@ class Ddlnp:
 class Auxilleryfunc:
     """
     Class for internal use 
+    :meta private:
     """
     def __init__(self, data_in, cov_tensor, inv_cov_tensor, y_transform_data, y_inv_transform, device):
         self.inv_cov_tensor = inv_cov_tensor
@@ -1013,6 +1015,7 @@ class LogPrior:
 def lnprior(x):
     """
     internal function
+    :meta private:
     """
     return -0.5 * torch.sum(x.square())
 
