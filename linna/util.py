@@ -430,8 +430,7 @@ class Y_transform_data:
 
 class Y_invtransform_data:
     """
-    Transform y to y*sigma 
-    See detail api in ``Y_transform_data``
+    Transform data vector from y-->y sigma (Api is the same as ``Y_transform_data``)
     """
     def __init__(self, sigma, device):
         self.sigma = torch.from_numpy(sigma.astype(np.float32)).to(device).clone().requires_grad_()
