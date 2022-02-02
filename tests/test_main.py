@@ -45,7 +45,7 @@ def testmain():
 def test_reading():
     outdir = os.path.abspath(os.getcwd())+"/test_data/2dgaussian_Fulltconn/"
     chain, logprob = ml_sampler_core(ntrainArr, nvalArr, nkeepArr, ntimesArr, ntautolArr, outdir, theory, priors, means, cov,  init, pool, nwalkers, "cuda", dolog10index, ypositive, temperatureArr, omegab2cut=None, docuda=False, tsize=1, gpunode=None, nnmodel_in=ChtoModelv2, params=params, method="emcee")
-    npt.assert_almost_equal(np.mean(chain),  0.7600089854427746, decimal=5)
+    npt.assert_almost_equal(np.mean(chain),  0.7636883618930975, decimal=5)
     npt.assert_almost_equal(np.std(chain), 0.9476177014053702, decimal=5)
 
 
