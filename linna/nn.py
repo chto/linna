@@ -9,7 +9,17 @@ import pickle
 
 
 class ResBlock_batchnorm(nn.Module):
+    """
+    Residual block
+    """
     def __init__(self, in_size, channel, out_size):
+        """
+        Args:
+            in_size (int): size of input data vector
+            channel (int): size of the inner layer
+            out_size (int): size of output data vector
+
+        """
         super(ResBlock_batchnorm, self).__init__()
 
         self.layer1 = nn.Linear(in_size, channel)
@@ -22,6 +32,9 @@ class ResBlock_batchnorm(nn.Module):
 
         self.init_weight()
     def init_weight(self):
+        """
+        initialize the weight of neural network
+        """
         for m in self.modules():
             if type(m)==nn.Linear:
                 nn.init.xavier_uniform_(m.weight)
@@ -30,6 +43,13 @@ class ResBlock_batchnorm(nn.Module):
         nn.init.zeros_(self.skip_layer.weight)
 
     def forward(self, x):
+        """
+        Args:
+            s (torch tensor): input array
+        Returns:
+            torch tensor: ourput array
+
+        """
         h = F.relu((self.layer1(x)))
         y = F.relu((self.layer2(h)) * 0.1 + self.skip_layer(x))
 
@@ -114,6 +134,9 @@ class ChtoModelv2(nn.Module):
 
 
 class ChtoModelv2_linear(nn.Module):
+    """
+    For testing 
+    """
     def __init__(self, in_size, out_size, linearmodel, docpu=False): 
         super(ChtoModelv2_linear, self).__init__()
         self.channel = 16
@@ -175,6 +198,9 @@ class ChtoModelv2_linear(nn.Module):
         return s
 
 class LinearModel:
+    """
+    Linear regression model
+    """
     def __init__(self, norder, npc, x_transform=None, y_transform=None, y_inverse_transform_data=None):
         self._istrained=False
         self.norder = norder
@@ -241,6 +267,10 @@ class LinearModel:
         return self.y_invtransform_data(self.y_transform(self(self.x_transform(x))))
         
 class pytorchPolynomialLinear:
+    """
+    Implement a polynomial fit using pytorch
+
+    """
     def __init__(self, ndegree):
         self.poly =  PolynomialFeatures(degree=ndegree)
 
@@ -270,7 +300,7 @@ class pytorchPolynomialLinear:
 
 class ChtoModel_test(nn.Module):
     """
-        main neural network used by linna
+        A simplified neural network
     """
     def __init__(self, in_size, out_size, linearmodel, docpu=False): 
         """
