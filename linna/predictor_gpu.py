@@ -321,7 +321,7 @@ class Predictor:
                         else:
                             self.model = self.model_old
                         self.optim = torch.optim.AdamW(params=self.model.parameters(), lr=lr, weight_decay=1E-4)
-                        if (i>10):
+                        if ((i>10)&(lr>2E-4)):
                             for ind, param_group in enumerate(self.optim.param_groups):
                                 lr = param_group['lr']
                                 if lr>2E-6:
@@ -350,12 +350,13 @@ class Predictor:
                             else:
                                 self.model = self.model_old
                         self.optim = torch.optim.AdamW(params=self.model.parameters(), lr=lr, weight_decay=1E-4)
-                        if (i>10):
-                            for ind, param_group in enumerate(self.optim.param_groups):
-                                lr = param_group['lr']
-                                if lr>2E-6:
-                                    print("learning rate too large: {0}".format(lr), flush=True)
-                                    self.optim.param_groups[ind]['lr'] = lr/2.
+                        if (np.isnan(val_metrics[-1][0])) or (val_metrics[-1][0]>1E10) or (val_metrics[-1][0]-old>10*old):
+                            if (i>10):
+                                for ind, param_group in enumerate(self.optim.param_groups):
+                                    lr = param_group['lr']
+                                    if lr>2E-6:
+                                        print("learning rate too large: {0}".format(lr), flush=True)
+                                        self.optim.param_groups[ind]['lr'] = lr/2.
                         if not (np.isnan(val_metrics[-1][0])):
                             if (val_metrics[-1][0]-old>5*old):
                                 val_metrics[-1][0] = old

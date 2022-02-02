@@ -248,11 +248,12 @@ def ml_sampler_core(ntrainArr, nvalArr, nkeepArr, ntimesArr, ntautolArr, outdir,
         else:
             theory = np.load(outdir+"/theory.npy")
         logprior=LogPrior(priors)
+        log_prob_samples_x = log_prob_samples_x.flatten()
         logp = logp_theory_data(chain, theory, data, inv_cov, logprior)
         w = np.exp(logp-log_prob_samples_x)
         w[np.abs(np.log(w)-np.mean(np.log(w)))>2*np.std(np.log(w))]=0
         w = w/np.sum(w)
-        np.save(outdir+"/weight_im.npy", [log_prob_samples_x, logp, w])
+        np.save(outdir+"/weight_im.npy", [log_prob_samples_x.flatten(), logp, w])
     return chain, log_prob_samples_x
 
 

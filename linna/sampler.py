@@ -645,24 +645,24 @@ class ZeusSampler:
             resume = False
         if not incremental:
             backend=None
-        self.sampler = zeus.EnsembleSampler(self.nwalkers, self.nparams, self.lnp, pool=pool)
-        cb0 = zeus.callbacks.AutocorrelationCallback(ncheck=100, dact=tautol, nact=ntimes, discard=0.5)
+        self.sampler = zeus.EnsembleSampler(self.nwalkers, self.nparams, self.lnp, pool=pool, maxiter=1E5)#, moves=[zeus.moves.GlobalMove()])
+        cb0 = zeus.callbacks.AutocorrelationCallback(ncheck=100, dact=tautol, nact=ntimes, discard=0.2, method='dfm')
             
         if not incremental:
             self.sampler.run_mcmc(x0,nsteps=nsamp, progress=progress);
             return np.array([self.transform(c) for c in self.sampler.get_chain(flat=True)])
         else:
-            if not resume:
-                print("burnin...", flush=True)
-                nwalker = x0.shape[0]
-                sampler = emcee.EnsembleSampler(self.nwalkers, self.nparams, self.lnp, pool=pool)
-                _ = sampler.run_mcmc(x0,nsteps=100, progress=True, skip_initial_state_check=True);
-                flat_chain = sampler.get_chain(flat=True)
-                log_prob = sampler.get_log_prob(flat=True)
-                pos = flat_chain[np.argsort(log_prob)[::-1][:int(50*nwalker)]]
-                x0 = pos[np.random.randint(0,len(pos),nwalker),:]
-                print("burnin done...", flush=True)
-                self.sampler.reset()    
+            #if not resume:
+            #    print("burnin...", flush=True)
+            #    nwalker = x0.shape[0]
+            #    sampler = zeus.EnsembleSampler(self.nwalkers, self.nparams, self.lnp, pool=pool, maxiter=1E5)
+            #    _ = sampler.run_mcmc(x0,nsteps=100, progress=True);
+            #    flat_chain = sampler.get_chain(flat=True)
+            #    log_prob = sampler.get_log_prob(flat=True)
+            #    pos = flat_chain[np.argsort(log_prob)[::-1][:int(50*nwalker)]]
+            #    x0 = pos[np.random.randint(0,len(pos),nwalker),:]
+            #    print("burnin done...", flush=True)
+            #    self.sampler.reset()    
             self.sampler.run_mcmc(x0, nsamp, callbacks=[backend, cb0]);
             del self.sampler
             self.sampler = None

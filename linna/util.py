@@ -59,9 +59,9 @@ def read_chain_and_cut(chainname, nk, ntimes=20, walkercut=False, method="emcee"
     if nk > ntimes:
         print("Error: keep number greater then chain samples. nk: {0}, ntimes: {1}. This will lead to inclusion of all burn in step".format(nk, ntimes))
     if method =="zeus":
-        nk = int(np.max(reader.get_autocorr_time())*nk)
+        nk = int(np.nanmedian(reader.get_autocorr_time())*nk)
     else:
-        nk = int(np.max(reader.get_autocorr_time(quiet=True))*nk)
+        nk = int(np.median(reader.get_autocorr_time(quiet=True))*nk)
     chain = reader.get_value("chain_transformed", discard=0, flat=False, thin=1)
     log_prob_samples = reader.get_log_prob(discard=0, flat=False, thin=1)
     if walkercut:
@@ -124,7 +124,6 @@ if not nompi:
                     if func == "noduplicate":
                         func = old_func
                     elif func == "reset":
-                        print("reset", flush=True)
                         old_func = None
                         continue
                     elif func.f.noduplicate and (old_func is not None):
@@ -804,7 +803,7 @@ class NN_samplerv1:
 
 
         max_n = 1000000
-        x0 = init+0.1*np.random.randn(nwalkers, ndim)
+        x0 = init+0.01*np.random.randn(nwalkers, ndim)
         samp = sampler.ZeusSampler(log_prob, ndim, nwalkers, x0=x0, transform=transform)
         samp.sample(pool, max_n, outdir=self.outdir, overwrite=False, ntimes=ntimes, incremental=True, progress=False, tautol=tautol)
     def _HMC_sample(self, log_prob, dlnp, ddlnp, ndim, nwalkers, init, pool, transform, samp_steps, samp_eps):

@@ -115,6 +115,8 @@ class Model_func:
             data = data[self.mask, 1]
         except:
             data = np.zeros_like(np.where(self.mask>0)[0])
+        if len(data)==0:
+            data = np.zeros_like(np.where(self.mask>0)[0])
         return data
 
 def submitgpujob(allargs):
@@ -160,7 +162,8 @@ def main():
     device = "cuda"
     np.random.seed(42)
     nwalkers = 128
-
+    if "nwalkers" in params:
+        nwalkers = params['nwalkers']
     ntrainArr = params['ntrainArr']
     nvalArr =  params['nvalArr'] 
     nkeepArr =  params['nkeepArr']
