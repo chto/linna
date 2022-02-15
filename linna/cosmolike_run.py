@@ -256,7 +256,7 @@ def main():
                 params['automaticgpu']['outdir'] = params['outdir']
                 submitgpujob(params['automaticgpu'])
                 gpunode = 'automaticgpu'
-            ml_sampler_core(ntrainArr, nvalArr, nkeepArr, ntimesArr, ntautolArr, outdir, theory, priors, data, cov,  init, pool, nwalkers, device, dolog10index=[0,1], ypositive=False, temperatureArr=temperatureArr, omegab2cut=omegab2cut, docuda=False, tsize=tsize, gpunode=gpunode, nnmodel_in=nnmodel_in, params=params, method=method)
+            ml_sampler_core(ntrainArr, nvalArr, nkeepArr, ntimesArr, ntautolArr, params['meanshiftArr'], params['stdshiftArr'], outdir, theory, priors, data, cov,  init, pool, nwalkers, device, dolog10index=[0,1], ypositive=False, temperatureArr=temperatureArr, omegab2cut=omegab2cut, docuda=False, tsize=tsize, gpunode=gpunode, nnmodel_in=nnmodel_in, params=params, method=method)
             end = time.time() 
             print("Runtime of the program is end - start", end-start)
             np.save(outdir+"/time.npy", end-start)

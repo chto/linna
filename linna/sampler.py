@@ -367,7 +367,23 @@ class Transformbackend(emcee.backends.HDFBackend):
 
             g.attrs["iteration"] = iteration + 1
         
+def checkmeanstd(samples, meanshift, stdshift):
+    """
+    Check convergence of the mcmc samples by comparing mean and standard deviation estimations of the first half of the sample and the second half 
+    
+    Args:
+       samples (ndarray): (nstep, nwalker, nparam) array. 
+       meanshift (float): criteria on shifts in mean 
+       stdshift ( float): criteria on shifts in standard deviation
 
+    Returns:
+        bool: converged or not 
+    """
+    firsthalf = samples[:int(len(samples)/2)].reshape(-1, samples.shape[-1])
+    secondhalf = samples[int(len(samples)/2):].reshape(-1, samples.shape[-1])
+    meanshifte = np.max(np.abs(np.mean(firsthalf, axis=0)-np.mean(secondhalf, axis=0))/np.std(secondhalf, axis=0))
+    stdshifte = np.max((np.std(firsthalf, axis=0)-np.std(secondhalf, axis=0))/np.std(secondhalf, axis=0))
+    return (meanshifte<meanshift)&(stdshifte<stdshift)
 
 class HMCSampler:
     def __init__(self, lnp, dlnp, ddlnp, ndim, nwalkers,  x0=None, m=None, transform=None, torchspeed=False):
@@ -438,7 +454,7 @@ class HMCSampler:
             self.x0 = np.random.randn(*self.x0.shape) *0.5*np.sqrt(s)
         self.calc_hess=True
 
-    def sample(self, pool, nsamp, samp_steps, samp_eps, Madapt=1000, outdir="./", progress=False, overwrite=False, ntimes=10, tautol=0.01, method="hmc", incremental=True):
+    def sample(self, pool, nsamp, samp_steps, samp_eps, Madapt=1000, outdir="./", progress=False, overwrite=False, ntimes=10, tautol=0.01, method="hmc", incremental=True, meanshift=0.1, stdshift=0.1, nk=2):
         if (not self.calc_hess)&(method=="nuts"):
            self.lnp = CombineFunc(self.lnp, self.dlnp) 
            self.calc_hess=True
@@ -527,6 +543,7 @@ class HMCSampler:
                 # Check convergence
                 converged = np.all(tau * ntimes< self.sampler.iteration)
                 converged &= np.all(np.abs(old_tau - tau) / tau < tautol)
+                converged &= checkmeanstd(self.sampler.get_chain()[-int(nk*np.mean(tau)):], meanshift=meanshift, stdshift=stdshift)
                 print("max, min tau diff, max tau, ninter: {0}, {1}, {2}, {3}\n".format(np.max(np.abs(old_tau - tau) / tau), np.min(np.abs(old_tau - tau) / tau), np.max(tau), self.sampler.iteration), flush=True)
                 if converged:
                     break
@@ -615,6 +632,71 @@ class Zeusbackend:
         return thin * AutoCorrTime(x, **kwargs)
 
 
+class ZeusconvergenceCallback:
+    """
+    Modified from Zeus's autoconvergence callback
+    Args:
+        ncheck (int): The number of steps after which the IAT is estimated and the tests are performed.
+            Default is ``ncheck=100``.
+        dact (float): Threshold of the rate of change of IAT. Sampling terminates once this threshold is
+            reached along with the other criteria. Default is ``dact=0.01``.
+        nact (float): Minimum lenght of the chain as a mutiple of the IAT. Sampling terminates once this threshold is
+            reached along with the other criteria. Default is ``nact=10``.
+        discard (float): Percentage of chain to discard prior to estimating the IAT. Default is ``discard=0.5``.
+        trigger (bool): If ``True`` (default) then terminatate sampling once converged, else just monitor statistics.
+        method (str): Method to use for the estimation of the IAT. Available options are ``mk`` (Default), ``dfm``, and ``gw``.
+        samples (ndarray): (nstep, nwalker, nparam) array. 
+        meanshift (float): criteria on shifts in mean 
+        stdshift ( float): criteria on shifts in standard deviation
+    """
+
+    def __init__(self, ncheck=100, dact=0.01, nact=10, discard=0.5, trigger=True, method='mk', meanshift=0.1, stdshift=0.1, nk=2):
+        self.ncheck = ncheck
+        self.dact = dact 
+        self.nact = nact
+
+        self.discard = discard
+        self.trigger = trigger
+        self.method = method
+
+        self.estimates = []
+        self.old_tau = np.inf
+
+        self.meanshift = meanshift
+        self.stdshift = stdshift
+        self.nk=nk
+
+    def __call__(self, i, x, y):
+        """
+        Method that calls the callback function.
+        Args:
+            i (int): Current iteration of the run.
+            x (array): Numpy array containing the chain elements up to iteration i for every walker.
+            y (array): Numpy array containing the log-probability values of all chain elements up to
+                iteration i for every walker.
+        Returns:
+            True if the criteria are satisfied and sampling terminates or False if the criteria are
+                not satisfied and sampling continues.
+        
+        """
+        converged = False
+
+        if i % self.ncheck == 0:
+        
+            tau = np.mean(AutoCorrTime(x[int(i * self.discard):], method=self.method))
+            self.estimates.append(tau)
+
+            # Check convergence
+            converged = tau * self.nact < i
+            converged &= np.abs(self.old_tau - tau) / tau < self.dact
+            converged &= checkmeanstd(x[-int(self.nk*tau):], self.meanshift, self.stdshift)
+            self.old_tau = tau
+
+        if self.trigger:
+            return converged
+        else:
+            return None
+
 
 class ZeusSampler:
     def __init__(self, lnp, ndim, nwalkers,  x0=None, transform=None):
@@ -625,7 +707,7 @@ class ZeusSampler:
         self.nwalkers=nwalkers
         self.sampler=None
 
-    def sample(self, pool, nsamp, outdir="./", progress=False, overwrite=False, ntimes=10, tautol=0.01, incremental=True):
+    def sample(self, pool, nsamp, outdir="./", progress=False, overwrite=False, ntimes=10, tautol=0.01, incremental=True, meanshift=0.1, stdshift=0.1, nk=2):
         if self.transform is None:
             self.transform = lambda x: x
         x0 = self.x0
@@ -646,23 +728,12 @@ class ZeusSampler:
         if not incremental:
             backend=None
         self.sampler = zeus.EnsembleSampler(self.nwalkers, self.nparams, self.lnp, pool=pool, maxiter=1E5)#, moves=[zeus.moves.GlobalMove()])
-        cb0 = zeus.callbacks.AutocorrelationCallback(ncheck=100, dact=tautol, nact=ntimes, discard=0.2, method='dfm')
-            
+        cb0 = ZeusconvergenceCallback(ncheck=100, dact=tautol, nact=ntimes, discard=0.2, method='dfm', meanshift=meanshift, stdshift=stdshift, nk=nk)
+
         if not incremental:
             self.sampler.run_mcmc(x0,nsteps=nsamp, progress=progress);
             return np.array([self.transform(c) for c in self.sampler.get_chain(flat=True)])
         else:
-            #if not resume:
-            #    print("burnin...", flush=True)
-            #    nwalker = x0.shape[0]
-            #    sampler = zeus.EnsembleSampler(self.nwalkers, self.nparams, self.lnp, pool=pool, maxiter=1E5)
-            #    _ = sampler.run_mcmc(x0,nsteps=100, progress=True);
-            #    flat_chain = sampler.get_chain(flat=True)
-            #    log_prob = sampler.get_log_prob(flat=True)
-            #    pos = flat_chain[np.argsort(log_prob)[::-1][:int(50*nwalker)]]
-            #    x0 = pos[np.random.randint(0,len(pos),nwalker),:]
-            #    print("burnin done...", flush=True)
-            #    self.sampler.reset()    
             self.sampler.run_mcmc(x0, nsamp, callbacks=[backend, cb0]);
             del self.sampler
             self.sampler = None

@@ -17,7 +17,7 @@ from torch.utils.data import Dataset, DataLoader
 from torch.utils import mkldnn as mkldnn_utils
 from linna.util import *
 
-def ml_sampler(outdir, theory, priors, data, cov, init, pool, nwalkers, gpunode, omegab2cut=None, nepoch=4500):
+def ml_sampler(outdir, theory, priors, data, cov, init, pool, nwalkers, gpunode, omegab2cut=None, nepoch=4500, method="zeus"):
     """
     LINNA main function with hyperparameters set to values described in To et al. 2022
 
@@ -33,6 +33,7 @@ def ml_sampler(outdir, theory, priors, data, cov, init, pool, nwalkers, gpunode,
         gpunode (string): name of gpu node
         omegab2cut (list of int): 2 elements containing the lower and upper limits of omegab*h^2
         nepoch (int, optional): maximum number of epoch for the neural network training
+        method (string, optional): Samplers. LINNA supports `emcee` and `zeus`(default)
     Returns:
         nd array: MCMC chain 
         1d array: log probability of MCMC chain
@@ -40,10 +41,22 @@ def ml_sampler(outdir, theory, priors, data, cov, init, pool, nwalkers, gpunode,
     """
     ntrainArr = [10000, 10000, 10000, 10000]
     nvalArr = [500, 500, 500, 500]
-    nkeepArr = [2, 2, 5, 5]
-    ntimesArr = [5, 5, 10, 15]
-    ntautolArr = [0.03, 0.03, 0.02, 0.01]
-    temperatureArr =  [4.0, 2.0, 1.0, 1.0]
+    if method=="emcee":
+        nkeepArr = [2, 2, 5, 5]
+        ntimesArr = [5, 5, 10, 15]
+        ntautolArr = [0.03, 0.03, 0.02, 0.01]
+        temperatureArr =  [4.0, 2.0, 1.0, 1.0]
+        meanshiftArr = [0.2, 0.2, 0.2, 0.2]
+        stdshiftArr = [0.15,0.15,0.15,0.15]
+    elif method=="zeus":
+        nkeepArr = [2, 2, 5, 5]
+        ntimesArr = [5, 5, 10, 50]
+        ntautolArr = [0.03, 0.03, 0.02, 0.01]
+        temperatureArr =  [4.0, 2.0, 1.0, 1.0]
+        meanshiftArr = [0.2, 0.2, 0.2, 0.2]
+        stdshiftArr = [0.15,0.15,0.15,0.15]
+    else:
+        raise NotImplementedError(method)
     dolog10index = None
     ypositive = False 
     device = "cuda"
@@ -54,9 +67,9 @@ def ml_sampler(outdir, theory, priors, data, cov, init, pool, nwalkers, gpunode,
     params["trainingoption"] = 1 
     params["num_epochs"] = nepoch
     params["batch_size"] = 500
-    return ml_sampler_core(ntrainArr, nvalArr, nkeepArr, ntimesArr, ntautolArr, outdir, theory, priors, data, cov,  init, pool, nwalkers, device, dolog10index, ypositive, temperatureArr, omegab2cut, docuda, tsize, gpunode, nnmodel_in, params, "emcee") 
+    return ml_sampler_core(ntrainArr, nvalArr, nkeepArr, ntimesArr, ntautolArr, meanshiftArr, stdshiftArr, outdir, theory, priors, data, cov,  init, pool, nwalkers, device, dolog10index, ypositive, temperatureArr, omegab2cut, docuda, tsize, gpunode, nnmodel_in, params, method) 
 
-def ml_sampler_core(ntrainArr, nvalArr, nkeepArr, ntimesArr, ntautolArr, outdir, theory, priors, data, cov,  init, pool, nwalkers, device, dolog10index, ypositive, temperatureArr, omegab2cut=None, docuda=False, tsize=1, gpunode=None, nnmodel_in=None, params=None, method="emcee"):
+def ml_sampler_core(ntrainArr, nvalArr, nkeepArr, ntimesArr, ntautolArr, meanshiftArr, stdshiftArr, outdir, theory, priors, data, cov,  init, pool, nwalkers, device, dolog10index, ypositive, temperatureArr, omegab2cut=None, docuda=False, tsize=1, gpunode=None, nnmodel_in=None, params=None, method="emcee"):
     """
     LINNA main function 
 
@@ -65,7 +78,9 @@ def ml_sampler_core(ntrainArr, nvalArr, nkeepArr, ntimesArr, ntautolArr, outdir,
         nvalArr (int array): number of validation data per iteration 
         nkeepArr (int array): number of autocorrelation time to be kept 
         ntimesArr (int array): number of autocorrelation time to stop mcmc
-        ntautolArr (float array): error limite of autocorrelation time 
+        ntautolArr (float array): error limit of autocorrelation time 
+        meanshiftArr (float array): limit on mean shift of parameter estimation from the first and second half of the chain 
+        stdshiftArr (float array): limit on std shift of parameter estimation from the first and second half of the chain
         outdir (string): output directory 
         theory (function): theory model 
         priors (dict of str: [float, float]): string can be either flat or gauss. If the string is 'flat', [a,b] indicates the lower and upper limits of the prior. If the string is 'gauss', [a,b] indicates the mean and sigma. 
@@ -111,7 +126,7 @@ def ml_sampler_core(ntrainArr, nvalArr, nkeepArr, ntimesArr, ntautolArr, outdir,
         filename = "zeus_256.h5"
     else:
         raise NotImplementedError(method)
-    for i, (nt, nv, nk, ntimes, tautol, temperature) in enumerate(zip(ntrainArr, nvalArr, nkeepArr, ntimesArr, ntautolArr, temperatureArr)):
+    for i, (nt, nv, nk, ntimes, tautol, temperature, meanshift, stdshift) in enumerate(zip(ntrainArr, nvalArr, nkeepArr, ntimesArr, ntautolArr, temperatureArr, meanshiftArr, stdshiftArr)):
         temperature = temperature**2
         print("#"*100)
         print("iteration: {0}".format(i), flush=True)
@@ -207,7 +222,7 @@ def ml_sampler_core(ntrainArr, nvalArr, nkeepArr, ntimesArr, ntautolArr, outdir,
         ddlnp = None
         if pool is not None:
             pool.noduplicate=True
-        run_mcmc(nnsampler, outdir_in, method, ndim, nwalkers, init, log_prob, dlnp=dlnp, ddlnp=ddlnp, pool=pool, transform=transform, ntimes=ntimes, tautol=tautol)
+        run_mcmc(nnsampler, outdir_in, method, ndim, nwalkers, init, log_prob, dlnp=dlnp, ddlnp=ddlnp, pool=pool, transform=transform, ntimes=ntimes, tautol=tautol, meanshift=meanshift, stdshift=stdshift, nk=nk)
         if pool is not None:
             pool.noduplicate_close() 
     chain_name = os.path.join(os.path.join(outdir, "iter_{0}/".format(len(ntrainArr)-1)), filename[:-3])

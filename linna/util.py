@@ -765,7 +765,7 @@ class NN_samplerv1:
         np.random.seed(self.seed)
         return chain[np.random.randint(0, len(chain), Nsamples)]
 
-    def emcee_sample(self, log_prob, ndim, nwalkers, init, pool, transform, ntimes=50, tautol=0.01, dlnp=None, ddlnp=None):
+    def emcee_sample(self, log_prob, ndim, nwalkers, init, pool, transform, ntimes=50, tautol=0.01, dlnp=None, ddlnp=None, meanshift=0.1, stdshift=0.1, nk=1):
         """
 
         Generate MCMC chains using emcee.
@@ -785,9 +785,9 @@ class NN_samplerv1:
         samp = sampler.HMCSampler(log_prob, dlnp, ddlnp, ndim, nwalkers, x0=x0, m=None, transform=transform)
         if (ddlnp is not None)&(dlnp is not None):
             samp.calc_hess_mass_mat(maxiter=1E7, gtol=1E0)
-        samp.sample(pool, max_n, 0, 0, outdir=self.outdir, overwrite=False, ntimes=ntimes, method = "emcee", incremental=True, progress=False, tautol=tautol)
+        samp.sample(pool, max_n, 0, 0, outdir=self.outdir, overwrite=False, ntimes=ntimes, method = "emcee", incremental=True, progress=False, tautol=tautol, meanshift=meanshift, stdshift=stdshift, nk=nk)
 
-    def Zeus_sample(self, log_prob, ndim, nwalkers, init, pool, transform, ntimes=50, tautol=0.01, dlnp=None, ddlnp=None):
+    def Zeus_sample(self, log_prob, ndim, nwalkers, init, pool, transform, ntimes=50, tautol=0.01, dlnp=None, ddlnp=None, meanshift=0.1, stdshift=0.1, nk=1):
         """
 
         Generate MCMC chains using zeus.
@@ -805,7 +805,7 @@ class NN_samplerv1:
         max_n = 1000000
         x0 = init+0.01*np.random.randn(nwalkers, ndim)
         samp = sampler.ZeusSampler(log_prob, ndim, nwalkers, x0=x0, transform=transform)
-        samp.sample(pool, max_n, outdir=self.outdir, overwrite=False, ntimes=ntimes, incremental=True, progress=False, tautol=tautol)
+        samp.sample(pool, max_n, outdir=self.outdir, overwrite=False, ntimes=ntimes, incremental=True, progress=False, tautol=tautol, meanshift=meanshift, stdshift=stdshift, nk=nk)
     def _HMC_sample(self, log_prob, dlnp, ddlnp, ndim, nwalkers, init, pool, transform, samp_steps, samp_eps):
         max_n = 1000000
         x0 = init+0.1*np.random.randn(nwalkers, ndim)
@@ -1221,7 +1221,7 @@ def train_NN( nnsampler, cov, inv_cov, sigma, outdir_in, outdir_list,data, dolog
         nnsampler.model=nnmodel
         model = train_nn(outdir_in, nnsampler.model, train_x, train_y, val_x, val_y, X_transform, y_transform, loss_fn, val_metric_fn, dev=device, verbose=True, retrain=retrain, pool=pool, nocpu=docuda, size=tsize, params=params)
 
-def run_mcmc(nnsampler, outdir, method, ndim, nwalkers, init, log_prob, dlnp=None, ddlnp=None, pool=None, transform=None, ntimes=50, tautol=0.01):
+def run_mcmc(nnsampler, outdir, method, ndim, nwalkers, init, log_prob, dlnp=None, ddlnp=None, pool=None, transform=None, ntimes=50, tautol=0.01, meanshift=0.1, stdshift=0.1, nk=2):
     """Run mcmc using the trained model 
     
     Args:
@@ -1236,7 +1236,8 @@ def run_mcmc(nnsampler, outdir, method, ndim, nwalkers, init, log_prob, dlnp=Non
         transform (Transform or None): function to transform input
         ntimes (int): number of autocorrelation time
         tautol (float): tolerance of autocorrelation time error
-
+        meanshift (float): maximum shifts of parameter mean estimations between first half and second half of the chains in unit of sigma
+        stdshift (float): maximum shift of parameter error estimation between first half and second half of the chains in unit of percent
     """
     samp_steps = 5
     samp_eps = 0.1
@@ -1245,10 +1246,10 @@ def run_mcmc(nnsampler, outdir, method, ndim, nwalkers, init, log_prob, dlnp=Non
     elif method  == "nuts":
         nnsampler._NUTS_sample(log_prob, dlnp, ddlnp, ndim, nwalkers, init, pool, 100, transform=transform)
     elif method == "emcee":
-        nnsampler.emcee_sample(log_prob, ndim, nwalkers, init, pool, ntimes=ntimes, tautol=tautol, transform=transform, dlnp=dlnp, ddlnp=ddlnp)
+        nnsampler.emcee_sample(log_prob, ndim, nwalkers, init, pool, ntimes=ntimes, tautol=tautol, transform=transform, dlnp=dlnp, ddlnp=ddlnp, meanshift=meanshift, stdshift=stdshift, nk=nk)
 
     elif method == "zeus":
-        nnsampler.Zeus_sample(log_prob, ndim, nwalkers, init, pool, ntimes=ntimes, tautol=tautol, transform=transform, dlnp=dlnp, ddlnp=ddlnp)
+        nnsampler.Zeus_sample(log_prob, ndim, nwalkers, init, pool, ntimes=ntimes, tautol=tautol, transform=transform, dlnp=dlnp, ddlnp=ddlnp, meanshift=meanshift, stdshift=stdshift, nk=nk)
     else:
         nnsampler._HMC_sample(log_prob, dlnp, ddlnp, ndim, nwalkers, init, pool, samp_steps, samp_eps, transform=transform)
 
