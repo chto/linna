@@ -21,18 +21,19 @@ jobs:
         with:
           python-version: '${{ matrix.python-version }}'
       - uses: actions/checkout@v2
-      - run: pyenv global $(pyenv whence 2to3)
-      - run: pip install pipenv
-      - run: export MPI_BUILD_DIR=$TRAVIS_BUILD_DIR/openmpi-build
-      - run: export MPI_VERSION="3.1"
-      - run: export MPI_FULL_VERSION="3.1.3"
-      - run: source ci/install-openmpi.sh
-      - run: echo $MPI_CC
-      - run: echo $MPI_CXX
-      - run: echo $MPI_EXEC
-      - run: env MPICC=$MPI_CC pipenv install --skip-lock
-      - run: pip install --upgrade pip
-      - run: pip install -r requirements.txt
-      - run: python setup.py install
-      - run: pytest tests
+      - name: Install python version
+        uses: gabrielfalcao/pyenv-action@v9
+        with:
+            default: "${{ matrix.python }}"
+            command: pip install -U pip  # upgrade pip after installing python
+      - name: environment variable
+        run: pip install pipenv
+        run: export MPI_BUILD_DIR=$TRAVIS_BUILD_DIR/openmpi-build
+        run: export MPI_VERSION="3.1"
+        run: export MPI_FULL_VERSION="3.1.3"
+      - name: Install dependencies  
+        run: pip install -r requirements.txt
+        run: python setup.py install
+      - name: Run tests 
+        run: pytest tests
 
