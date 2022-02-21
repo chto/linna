@@ -1,6 +1,7 @@
 *.swp
 *.swo
 *.swn
+*.swm
 out/
 _autosummary/
 job/
