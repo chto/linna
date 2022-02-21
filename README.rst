@@ -18,9 +18,9 @@ LINNA
 
 **Linna (Likelihood inference with neural network acceleration) is a tool to accelerate Bayesian posterior inferences using artificial neural networks.**
 
-- Able to reproduce posteriors produced by widely-used samplers on complicated cosmological data vector.
-- More than 100 times reduction on the number of model evaluations. 
-- Capable of running on standard super computers without requirements of numerous scarce resources, such as GPU arrays.
+- Linna automatically builds training data, trains the neural network, and produces a Markov chain that samples the posterior. 
+- Reduces the runtime of survey cosmological analyses of the Dark Energy Survey by a factor 8-50. 
+- Linna is verified to enable accurate and efficicient sampling for Vera Rubin Observatory's Legacy Survey of Space and Time (LSST) year 10 multi-probe analyses. 
 
 
 Documentation
