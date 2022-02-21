@@ -6,8 +6,8 @@ LINNA
 .. image:: https://img.shields.io/pypi/v/linna.svg
         :target: https://pypi.python.org/pypi/linna
 
-.. image:: https://img.shields.io/travis/chto/linna.svg
-        :target: https://app.travis-ci.com/github/chto/linna
+.. image:: https://github.com/chto/linna/actions/workflows/check.yml/badge.svg
+        :target: https://github.com/chto/linna/actions/workflows/check.yml
 
 .. image:: https://readthedocs.org/projects/linna/badge/?version=latest
         :target: https://linna.readthedocs.io/en/latest/?version=latest
