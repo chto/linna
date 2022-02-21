@@ -30,6 +30,8 @@ nkeepArr = [1]
 ntimesArr = [2]
 ntautolArr = [0.5]
 temperatureArr =  [1.0]
+meanshiftArr=[100]
+stdshiftArr = [100]
 params = {}
 params["trainingoption"] = 1
 params["num_epochs"] = 10
@@ -40,13 +42,13 @@ gpunode = None
 
 def testmain():
     outdir = os.path.abspath(os.getcwd())+"/out/2dgaussian_Fulltconn/"
-    chain, logprob = ml_sampler_core(ntrainArr, nvalArr, nkeepArr, ntimesArr, ntautolArr, outdir, theory, priors, means, cov,  init, pool, nwalkers, "cuda", dolog10index, ypositive, temperatureArr, omegab2cut=None, docuda=False, tsize=1, gpunode=None, nnmodel_in=ChtoModelv2, params=params, method="emcee")
+    chain, logprob = ml_sampler_core(ntrainArr, nvalArr, nkeepArr, ntimesArr, ntautolArr, meanshiftArr, stdshiftArr, outdir, theory, priors, means, cov,  init, pool, nwalkers, "cuda", dolog10index, ypositive, temperatureArr, omegab2cut=None, docuda=False, tsize=1, gpunode=None, nnmodel_in=ChtoModelv2, params=params, method="emcee")
 
 def test_reading():
     outdir = os.path.abspath(os.getcwd())+"/test_data/2dgaussian_Fulltconn/"
-    chain, logprob = ml_sampler_core(ntrainArr, nvalArr, nkeepArr, ntimesArr, ntautolArr, outdir, theory, priors, means, cov,  init, pool, nwalkers, "cuda", dolog10index, ypositive, temperatureArr, omegab2cut=None, docuda=False, tsize=1, gpunode=None, nnmodel_in=ChtoModelv2, params=params, method="emcee")
-    npt.assert_almost_equal(np.mean(chain),  0.7636883618930975, decimal=5)
-    npt.assert_almost_equal(np.std(chain), 0.899410820856809, decimal=5)
+    chain, logprob = ml_sampler_core(ntrainArr, nvalArr, nkeepArr, ntimesArr, ntautolArr, meanshiftArr, stdshiftArr, outdir, theory, priors, means, cov,  init, pool, nwalkers, "cuda", dolog10index, ypositive, temperatureArr, omegab2cut=None, docuda=False, tsize=1, gpunode=None, nnmodel_in=ChtoModelv2, params=params, method="emcee")
+    npt.assert_almost_equal(np.mean(chain),  0.15151080063411168, decimal=5)
+    npt.assert_almost_equal(np.std(chain), 0.9633211647095377, decimal=5)
 
 
 
