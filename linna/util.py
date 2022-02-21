@@ -30,6 +30,22 @@ from torch.utils.data import Dataset, DataLoader
 from torch.utils import mkldnn as mkldnn_utils
 from multiprocessing import Pool
 import matplotlib.pyplot as plt
+from scipy.optimize import minimize
+import tempfile
+import numdifftools as nd
+from scipy.stats import multivariate_normal
+
+def makepositivedefinite(cov, fcut=0.99):
+    eigvals, eigvec = np.linalg.eigh(cov)
+    eigvals = eigvals[::-1]
+    eigvec = eigvec[:,::-1]
+    eigvals[eigvals<0]=0
+    cumsum = np.cumsum(eigvals)
+    plt.plot(cumsum)
+    cumsum/=np.max(cumsum)
+    ind = np.argmin(np.abs(cumsum-fcut))
+    eigvals[ind:]=eigvals[ind]
+    return eigvec @ np.diag(eigvals) @ eigvec.T
 
 
 ##Auxilery function 
@@ -818,12 +834,15 @@ class NN_samplerv1:
         samp = sampler.HMCSampler(log_prob, dlnp, ddlnp, ndim, nwalkers, x0=x0, m=None, transform=transform, torchspeed=True)
         samp.calc_hess_mass_mat(maxiter=1E7, gtol=1E0)
         samp.sample(pool, max_n, 0,0,Madapt, outdir=self.outdir, overwrite=False, ntimes=50, method="nuts", incremental=True, progress=True)
+def gaussianlogliklihood( m, data, invcov):
+    d = m-data
+    return (d@(invcov)@d.T*(-0.5))[0][0]
 
 class Log_prob:
     """
     Class do loglikelihood
     """
-    def __init__(self, data_new, invcov_new, model, y_invtransform_data, transform, temperature, nograd=False):
+    def __init__(self, data_new, invcov_new, model, y_invtransform_data, transform, temperature, loglikelihoodfunc, nograd=False):
         """
         Args:
             data_new (array or torch tensor): data vector
@@ -832,6 +851,7 @@ class Log_prob:
             y_invtransform_data (linna.util.Y_invtransform_data): data transform
             transform (``Transform``): transform parameter
             temperature (float): inflat the likelihood by L--> L/T
+            loglikelihoodfunc (callable): function of model, data , inverse of covariance matrix and return the log liklihood value 
             nograd (bool): whether to retain gradiant information 
         """
         if not torch.is_tensor(data_new):
@@ -847,6 +867,7 @@ class Log_prob:
         self.transform = transform
         self.T = temperature
         self.no_grad = nograd
+        self.loglikelihoodfunc = loglikelihoodfunc
         self.noduplicate=True
 
     def __call__(self, x, returntorch=True, inputnumpy=True):
@@ -864,16 +885,17 @@ class Log_prob:
             x=torch.from_numpy(x.astype(np.float32)).to("cpu").clone().requires_grad_()
         x_in  = self.transform(x,inputnumpy=False, returnnumpy=False)
         m = self.y_invtransform_data(self.model.predict(x_in,no_grad=self.no_grad))
-        d = m-self.data_new
+        #d = m-self.data_new
+        #(d@(self.invcov_new)@d.T*(-0.5))/self.T+lnprior(x)
 
-        like = (d@(self.invcov_new)@d.T*(-0.5))/self.T+lnprior(x)
-        if torch.isnan(like[0][0]): 
+        like = self.loglikelihoodfunc(m, self.data_new, self.invcov_new)/self.T + lnprior(x) #(d@(self.invcov_new)@d.T*(-0.5))/self.T+lnprior(x)
+        if torch.isnan(like): 
             return -torch.inf
         else:
             if returntorch:
-                return like[0][0]
+                return like
             else:
-                return like[0][0].detach().numpy() 
+                return like.detach().numpy() 
    
 class Dlnp:
     """
@@ -938,6 +960,7 @@ class Auxilleryfunc:
             delta = y_target_in - y_pred_in
             delta[mask] = 0
             chisqMnn = torch.sum(((delta @  self.inv_transformed_cov) * delta), dim=-1)
+            chisqMd[chisqMd<0.5*len(y_target[0])] =  0.5*len(y_target[0])
             loss = chisqMnn/chisqMd
             return loss, chisqMd, chisqnnd
 
@@ -1018,7 +1041,7 @@ def lnprior(x):
     """
     return -0.5 * torch.sum(x.square())
 
-def generate_training_point(theory, nnsampler, pool, outdir, ntrain, nval, chain=None, nsigma=1, omegab2cut=None, options=0):
+def generate_training_point(theory, nnsampler, pool, outdir, ntrain, nval, data, invcov, chain=None, nsigma=1, omegab2cut=None, options=0, negloglike=None, nbest_in=None, chisqcut=None):
     """
     Generate training point 
 
@@ -1029,10 +1052,15 @@ def generate_training_point(theory, nnsampler, pool, outdir, ntrain, nval, chain
         outdir (string): output directory 
         ntrain (int): number of training data
         nval (int): number of validation data
+        data (1d array): float array, data vector 
+        invcov (2d array): float array, inverse of covariance matrix
         chain (array or None): if None: generate from prior, if and array: training sample will be generated using thie chain 
         nsigma (int): if option ==0, this means we build a LH in nsignma region of the chain. 
         omegab2cut (list or None): additional cut on omegabh2, if list, omegab2cut = [index of omegab, index of h, lower limit, upper limit]
         options (int): if 0, generate using Latin Hypercube. If 1, random sample the chain
+        negloglike (callable): if not None, generate one sample usin maximum likelihood method (minimize negloglike)
+        nbest_in (int, optional): number of samples to be included in the training set according to the optimizer 
+        chisqcut (float, optional): cut the training data if there chisq is greater than this value 
     """
     if (pool is None) or pool.is_master():
         if not os.path.isdir(outdir):
@@ -1080,6 +1108,43 @@ def generate_training_point(theory, nnsampler, pool, outdir, ntrain, nval, chain
             val_x = np.loadtxt(os.path.join(outdir, "val_samples_x.txt"))
             val_y = nnsampler.generate_training_data(zip(range(len(val_x)), val_x), theory, pool=pool, args=[outval])
             np.save(outdir+"val_samples_y.npy", val_y)
+        #Generate best point
+        if negloglike is not None:
+            if not os.path.isfile(os.path.join(outdir, "best_samples_x.txt")):
+                train_x = np.loadtxt(os.path.join(outdir, "train_samples_x.txt"))
+                bestx_mean = minimize(negloglike, train_x[0], method='Nelder-Mead', tol=1e-6).x
+                invHess = np.linalg.inv(makepositivedefinite(nd.Hessian(negloglike)(bestx_mean))) 
+                bestx = multivariate_normal.rvs(mean=bestx_mean, cov=invHess, size=nbest_in, random_state=None)
+                np.savetxt(os.path.join(outdir, "best_samples_x.txt"), bestx)
+                bestx_val = multivariate_normal.rvs(mean=bestx_mean, cov=invHess, size=int(nbest_in/ntrain*nval), random_state=None)
+                np.savetxt(os.path.join(outdir, "best_samples_x_val.txt"), bestx_val)
+            if not os.path.isfile(os.path.join(outdir, "best_samples_y.npy")):
+                bestx = np.loadtxt(os.path.join(outdir, "best_samples_x.txt"))
+                with tempfile.TemporaryDirectory() as tmpdirname:
+                    besty = nnsampler.generate_training_data(zip(range(len(bestx)), bestx), theory, pool=pool, args=[tmpdirname])
+                np.save(outdir+"best_samples_y.npy", besty)
+                bestx = np.loadtxt(os.path.join(outdir, "best_samples_x_val.txt"))
+                with tempfile.TemporaryDirectory() as tmpdirname:
+                    besty = nnsampler.generate_training_data(zip(range(len(bestx)), bestx), theory, pool=pool, args=[tmpdirname])
+                np.save(outdir+"best_samples_y_val.npy", besty)
+        if chisqcut is not None:
+            chisqcut_all(data, invcov, chisqcut, os.path.join(outdir, "train_samples_y.npy"), os.path.join(outdir, "train_samples_x.txt"))
+            chisqcut_all(data, invcov, chisqcut, os.path.join(outdir, "val_samples_y.npy"), os.path.join(outdir, "val_samples_x.txt"))
+            if negloglike is not None:
+                chisqcut_all(data, invcov, chisqcut, os.path.join(outdir, "best_samples_y.npy"), os.path.join(outdir, "best_samples_x.txt"))
+                chisqcut_all(data, invcov, chisqcut, os.path.join(outdir, "best_samples_y_val.npy"), os.path.join(outdir, "best_samples_x_val.txt"))
+
+def chisqcut_all(data, invcov, chisqcut, fnamey, fnamex):
+    """
+        Internal function
+    """
+    y = np.load(fnamey)
+    x = np.loadtxt(fnamex)
+    chisq = np.array([y_.dot(invcov).dot(y_) for y_ in y])
+    y= y[chisq<chisqcut]
+    x = x[chisq<chisqcut]
+    np.save(fnamey, y)
+    np.savetxt(fnamex, x)
 
 def train_nn(outdir, model, train_x, train_y, val_x, val_y, X_transform, y_transform, loss_fn, val_metric_fn,dev = "cpu", verbose=False, retrain=True, pool=None, nocpu=False, size=0, rank=0, params=None):
     """
@@ -1124,7 +1189,7 @@ def median_absolute_deviation(y, median, dim):
     df = torch.abs(y-median)
     return df.median(axis=dim).values
 
-def train_NN( nnsampler, cov, inv_cov, sigma, outdir_in, outdir_list,data, dolog10index=None, ypositive=False, retrain=True, norder=2, temperature=None, docuda=False, pool=None, tsize=1, nnmodel_in=None, params=None):
+def train_NN( nnsampler, cov, inv_cov, sigma, outdir_in, outdir_list,data, dolog10index=None, ypositive=False, retrain=True, norder=2, temperature=None, docuda=False, pool=None, tsize=1, nnmodel_in=None, params=None, usebest=False):
         """
         Internal function
         """
@@ -1151,13 +1216,74 @@ def train_NN( nnsampler, cov, inv_cov, sigma, outdir_in, outdir_list,data, dolog
             return X1
 
 
+        train_x = []
+        train_y = []
+        val_x = []
+        val_y = []
+        for outdir in outdir_list:
+            _ = np.loadtxt(os.path.join(outdir, "train_samples_x.txt"))
+            if len(_)>1:
+                train_x.append(_)
+            _ = np.load(os.path.join(outdir, "train_samples_y.npy"))
+            if len(_)>1:
+                train_y.append(_)
+            _ = np.loadtxt(os.path.join(outdir, "val_samples_x.txt"))
+            if len(_)>1:
+                val_x.append(_)
+            _ = np.load(os.path.join(outdir, "val_samples_y.npy"))
+            if len(_)>1:
+                val_y.append(_)
+        
+        try: 
+            train_x = np.concatenate(train_x)
+            train_y = np.concatenate(train_y)
+            val_x = np.concatenate(val_x)
+            val_y = np.concatenate(val_y)
+            train_y_last = np.concatenate([np.load(outdir_list[0]+"train_samples_y.npy")])
+            if len(train_y_last)==0:
+                train_y_last= train_y
+        except:
+            train_x = np.array(train_x)
+            train_y = np.array(train_y)
+            val_x = np.array(val_x)
+            val_y = np.array(val_y)
+            train_y_last= train_y
 
+        if usebest:
+            trainbest_x= []
+            trainbest_y=[]
+            for outdir in outdir_list:
+                _ = np.loadtxt(outdir+"best_samples_x.txt")
+                if len(_)>1:
+                    trainbest_x.append(_)
+                _ = np.load(outdir+"best_samples_y.npy")
+                if len(_)>1:
+                    trainbest_y.append(_)
+            try:
+                trainbest_x = np.concatenate(trainbest_x)
+                trainbest_y = np.concatenate(trainbest_y)
+            except:
+                trainbest_x = np.array(trainbest_x)
+                trainbest_y = np.array(trainbest_y)
 
-        train_x = np.concatenate([np.loadtxt(os.path.join(outdir, "train_samples_x.txt")) for outdir in outdir_list])
-        train_y = np.concatenate([np.load(outdir+"train_samples_y.npy") for outdir in outdir_list])
-        train_y_last = np.concatenate([np.load(outdir_list[0]+"train_samples_y.npy")])
-        val_x = np.concatenate([np.loadtxt(os.path.join(outdir, "val_samples_x.txt")) for outdir in outdir_list])
-        val_y = np.concatenate([np.load(outdir+"val_samples_y.npy") for outdir in outdir_list])
+            if len(trainbest_x.shape)>1:
+                if len(train_x.shape)>1:
+                    train_x = np.concatenate([trainbest_x, train_x])
+                    train_y = np.concatenate([trainbest_y, train_y])
+                else:
+                    train_x = trainbest_x
+                    train_y = trainbest_y
+                    train_y_last = trainbest_y
+            valbest_x = np.concatenate([np.loadtxt(outdir+"best_samples_x_val.txt") for outdir in outdir_list])
+            valbest_y = np.concatenate([np.load(outdir+"best_samples_y_val.npy") for outdir in outdir_list])
+            if len(valbest_x.shape)>1:
+                if len(val_x.shape)>1:
+                    val_x = np.concatenate([valbest_x, val_x])
+                    val_y = np.concatenate([valbest_y, val_y])
+                else:
+                    val_x = valbest_x
+                    val_y = valbest_y
+        print(train_x.shape, train_y.shape, val_x.shape, val_y.shape)
         if ypositive:
             train_y[np.where(train_y>1E10)] = 1E10
             train_y[np.where(train_y<1E-30)] = 1E-30
