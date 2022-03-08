@@ -604,7 +604,7 @@ class _FunctionWrapper(object):
     def __call__(self, x):
         return self.f(x, *self.args, **self.kwargs)
 
-def retrieve_model(outdir, inshape, outshape, nnmodel_in):
+def retrieve_model(outdir, inshape, outshape, nnmodel_in=ChtoModelv2):
     """
     Retrieve the trained model
 
@@ -612,11 +612,11 @@ def retrieve_model(outdir, inshape, outshape, nnmodel_in):
         Outdir (string): directory of the outdir
         inshape (int): input vector size of the model 
         outshape (int): output vector size of the model 
-        nnmodel_in (callable): an function that work the same as the model. This function will be applied on the input datavector and work in combination with the model.
+        nnmodel_in (callable, optional): neural network instance defined in nn.py
 
     Returns:
-        model (linna.predictor_gpu.Predictor): model
-        y_invtransform_data (linna.util.Y_invtransform_data)
+        linna.predictor_gpu.Predictor: model
+        linna.util.Y_invtransform_data: callable that transform the model to the same space as data vector  
         
     """
     ####Retrive the model 
@@ -633,6 +633,23 @@ def retrieve_model(outdir, inshape, outshape, nnmodel_in):
     model = predictor_gpu.Predictor(inshape, outshape, X_transform=X_transform, y_transform=y_transform,device='cpu', outdir=outdir, model = nnmodel)
     model.load_checkpoint()
     return model, y_invtransform_data
+
+def retrieve_model_wrapper(outdir, nnmodel_in=ChtoModelv2):
+    """
+    Retrieve the trained model (more user friendly than `retrieve_model`)
+
+    Args:
+        Outdir (string): directory of the outdir
+        nnmodel_in (callable, optional): neural network instance defined in nn.py
+
+    Returns:
+        model (callable): a function takes in cosmological and nuisance parameters (numpy array) and returns the prediction of the data vector using the neural network. Note that the output is in the format of torch.tensor, so that its differentiation can be evaluated. 
+        
+    """ 
+    nshapein = np.loadtxt(os.path.join(outdir, "train_samples_x.txt")).shape[1]
+    nshapeout = np.load(os.path.join(outdir, "train_samples_y.npy")).shape[1]
+    model, y_invtransform_data = retrieve_model(outdir, nshapein, nshapeout, nnmodel_in=ChtoModelv2)
+    return lambda x: y_invtransform_data(model.predict(torch.from_numpy(x.astype(np.float32))).to("cpu").clone())
 
 class NN_samplerv1:
     """

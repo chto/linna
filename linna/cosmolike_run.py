@@ -251,7 +251,6 @@ def main():
             sys.exit(0)
     if pool is not None:
         if pool.is_master():
-
             if 'automaticgpu' in params:
                 params['automaticgpu']['outdir'] = params['outdir']
                 submitgpujob(params['automaticgpu'])

@@ -74,7 +74,7 @@ def ml_sampler(outdir, theory, priors, data, cov, init, pool, nwalkers, gpunode,
     params["batch_size"] = 500
     return ml_sampler_core(ntrainArr, nvalArr, nkeepArr, ntimesArr, ntautolArr, meanshiftArr, stdshiftArr, outdir, theory, priors, data, cov,  init, pool, nwalkers, device, dolog10index, ypositive, temperatureArr, omegab2cut, docuda, tsize, gpunode, nnmodel_in, params, method, nbest=nbest, chisqcut=chisqcut, loglikelihoodfunc=loglikelihoodfunc) 
 
-def ml_sampler_core(ntrainArr, nvalArr, nkeepArr, ntimesArr, ntautolArr, meanshiftArr, stdshiftArr, outdir, theory, priors, data, cov,  init, pool, nwalkers, device, dolog10index, ypositive, temperatureArr, omegab2cut=None, docuda=False, tsize=1, gpunode=None, nnmodel_in=None, params=None, method="emcee", nbest=None, chisqcut=None, loglikelihoodfunc=None):
+def ml_sampler_core(ntrainArr, nvalArr, nkeepArr, ntimesArr, ntautolArr, meanshiftArr, stdshiftArr, outdir, theory, priors, data, cov,  init, pool, nwalkers, device, dolog10index, ypositive, temperatureArr, omegab2cut=None, docuda=False, tsize=1, gpunode=None, nnmodel_in=None, params=None, method="emcee", nbest=None, chisqcut=None, loglikelihoodfunc=None, nsigma=3):
     """
     LINNA main function 
 
@@ -92,7 +92,7 @@ def ml_sampler_core(ntrainArr, nvalArr, nkeepArr, ntimesArr, ntautolArr, meanshi
         data (1d array): float array, data vector 
         cov (2d array): float array, covariance matrix
         init (ndarray): initial guess of mcmc,
-        pool: 
+        pool (object): mpi4py pool instance 
         nwalkers (int) number of mcmc walkers
         device (string): cpu or gpu
         dolog10index (int array): index of parameters to do log10 
@@ -108,6 +108,7 @@ def ml_sampler_core(ntrainArr, nvalArr, nkeepArr, ntimesArr, ntautolArr, meanshi
         nbest (int or list of int): number of points to include in the training set per iteration according to the optimizer
         chisqcut (float, optional): cut the training data if there chisq is greater than this value 
         loglikelihoodfunc (callable): function of model, data , inverse of covariance matrix and return the log liklihood value 
+        nsigma (float): the training point in the first iteration will be generated within nsigma of the gaussian prior 
     Returns:
         nd array: MCMC chain 
         1d array: log probability of MCMC chain
@@ -171,7 +172,7 @@ def ml_sampler_core(ntrainArr, nvalArr, nkeepArr, ntimesArr, ntautolArr, meanshi
             options = params['trainingoption']
         else:
             options = 0
-        generate_training_point(theory, nnsampler, pool, outdir_in, ntrain, nval, data, inv_cov, chain, nsigma=3, omegab2cut=omegab2cut, options=options,  negloglike= negloglike, nbest_in=nbest_in, chisqcut=chisqcut)
+        generate_training_point(theory, nnsampler, pool, outdir_in, ntrain, nval, data, inv_cov, chain, nsigma=nsigma, omegab2cut=omegab2cut, options=options,  negloglike= negloglike, nbest_in=nbest_in, chisqcut=chisqcut)
         chain = None
         del chain 
         if i!=0:

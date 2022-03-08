@@ -39,3 +39,10 @@ nnmodel: "ChtoModelv2" #Neural network model implemented in nn.py
 num_epochs: 4500       #Maximum number of epoch for training 
 batch_size: 500        #Batch size of training 
 trainingoption: 1      #Randomly sample the chain for training data 
+#####################
+#GPU automatic#
+#####################
+automaticgpu:
+    qos: "gpu"           #name of GPU queue 
+    time: "18:00:00"     #Run time 
+    gpuconstraint: "GPU_CC:7.5|GPU_CC:8.0|GPU_CC:8.6" #GPU type constraint
