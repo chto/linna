@@ -552,9 +552,6 @@ class HMCSampler:
             del self.sampler
             self.sampler = None
 
-
-
-
 class ZeusTransformCallback(zeus.callbacks.SaveProgressCallback):
     def __init__(self, filename, ncheck, transform):
         super(ZeusTransformCallback, self).__init__(filename, ncheck)

@@ -72,12 +72,10 @@ class EarlyStopping(object):
             self.num_bad_epochs = 0 
         
             return 0
-
         if np.isnan(metrics):
             print("nan metric", flush=True)
             self.num_bad_epochs += 1
             return 0
-
         if self.is_better(metrics, self.best):
             self.num_bad_epochs = 0
             self.cooling =0 
@@ -131,12 +129,8 @@ class EarlyStopping(object):
                         else:
                             self.cooling_weight_decay+=1    
                             return 3
-
-               
-
         if self.num_bad_epochs >= self.patience:
             return 2
-
         return 0
 
     def _init_is_better(self, mode, min_delta, percentage):
@@ -155,33 +149,25 @@ class EarlyStopping(object):
                 self.is_better = lambda a, best: a > best + (
                             best * min_delta / 100)
 
-class Prediction_func:
-    def __init__(self, y_transform, model, X_transform):
-        self.y_transform = y_transform
-        self.model = model
-        self.X_transform = X_transform
-    def __call__(self, x):
-        return self.y_transform(self.model(self.X_transform(x)))
-
-def gather(tensor, tensor_list=None, root=0, group=None):
-    """
-        Sends tensor to root process, which store it in tensor_list.
-    """
-  
-    rank = dist.get_rank()
-    if group is None:
-        group = dist.group.WORLD
-    if rank == root:
-        assert(tensor_list is not None)
-        dist.gather(tensor, gather_list=tensor_list, group=group)
-    else:
-        dist.gather(tensor, dst=root, group=group)
-
-
 
 class Predictor:
+    """
+    class handle neural network training and prediction
+    """
     def __init__(self, in_size=None, out_size=None, model=None, optim=None, X_transform=None,
                  y_transform=None, device='cpu', scheduler=None, outdir=None):
+        """
+        Args:
+            in_size (int): input size of the neural network 
+            out_size (int): output size of the neural network 
+            model (string): specify the neural network model defined in nn.py
+            optim (pytorch optimizer instance or string, optional): default one is AdamW, if "automatic": will use AdamW with automatically determined learning rate 
+            X_transform (callable): transformation function of the input, whose output will be fed into neural network 
+            y_transform (callable): transformation function of the output, whouse ouput will be used to training neural network
+            device (string): cpu or cuda
+            scheduler (None): not used for now [reserved for mpi training]
+            outdir (string): specify the output directory
+        """
         self.in_size = in_size
         self.out_size = out_size
         self.device = device
@@ -212,11 +198,27 @@ class Predictor:
         self.MKLDNN=False
         self.MKLDNNMODEL=False
 
-
     def train(self, dataset, num_epochs, loss_fn, val_dataset=None, val_metric_fn=None, initfrombest=False, pool=None, nocpu=False, rank=0, size=1):
+        """
+        training the neural network
+
+        Args:
+            dataset (pytorch.DataLoader): iterator of the training dataset
+            num_epoches (int): maximum number of epch for traning 
+            loss_fn (callable): define the loss function 
+            val_dataset (pytorch.DataLoader): iterator of the test dataset 
+            val_metric_fn (callabel): define the loss function for validation dataset
+            initfrombest (bool): if true, the training will start from the previous best fit point 
+            pool (not used): reserved for parallel training 
+            nocpu (bool): if true: use gpu to train, else: use cpu to traing
+            rank (not used): reserved for parallel training
+            size (not used): reserved for parallel training
+
+        Returns:
+            np.array: training losses in each epoch 
+            np.array: validation losses in each epoch
+        """
         torch.manual_seed(1234) 
-
-
         if self.optim == "automatic":
             if (rank==0) and (not os.path.isfile(self.outdir+"/lr.npy")):
                 newmodel = copy.deepcopy(self.model)
@@ -262,9 +264,6 @@ class Predictor:
         self.model_old = copy.deepcopy(self.model)
         if pool is not None:
             self.model = DDP(self.model_old)
-            #self.model.register_comm_hook(None, noop_hook)
-            #state = PowerSGDState(process_group=None, matrix_approximation_rank=1)
-            #self.model.register_comm_hook(state, batched_powerSGD_hook)
         self.optim = torch.optim.AdamW(params=self.model.parameters(), lr=lr, weight_decay=1E-4)
         for i in pbar:
             data_iter = iter(dataset)
@@ -278,177 +277,169 @@ class Predictor:
                 self.optim.zero_grad()
                 y_pred = self.model(self.X_transform(X))
                 if pool is not None:
-                    #with self.model.join():
                         loss = loss_fn(y_pred, y_target)
                         all_loss = [torch.zeros_like(loss) for _ in range(size)]
                         loss.backward()
-                        #print(y_pred.shape, y_target.shape)
-                        #if rank==0:
-                        #    print(all_loss, flush=True)
                 else:
                     loss = loss_fn(y_pred, y_target) 
                     loss.backward()
 
                 self.optim.step()
                 train_losses.append(loss.item())
-                #print(loss.item, flush=True)
-            #print(j, flush=True)
-            #assert(0)
-            if (True):
-                if val_dataset is not None:
-                    val_iter = iter(val_dataset)
-                    self.model.eval()
-                    modelmkl = copy.deepcopy(self.model)
-                    if not nocpu:
-                        modelmkl = mkldnn_utils.to_mkldnn(modelmkl)
+            if val_dataset is not None:
+                val_iter = iter(val_dataset)
+                self.model.eval()
+                modelmkl = copy.deepcopy(self.model)
+                if not nocpu:
+                    modelmkl = mkldnn_utils.to_mkldnn(modelmkl)
 
-                    val_metric = None
-                    val_count = 0
-                    for X, y_target in val_iter:
-                        X = X.to(self.device)
-                        y_target = y_target.to(self.device)
+                val_metric = None
+                val_count = 0
+                for X, y_target in val_iter:
+                    X = X.to(self.device)
+                    y_target = y_target.to(self.device)
 
-                        with torch.no_grad():
-                            y_pred = modelmkl(self.X_transform(X))
+                    with torch.no_grad():
+                        y_pred = modelmkl(self.X_transform(X))
 
-                            if val_metric is None:
-                                val_metric = np.array([val.item() for val in val_metric_fn(y_pred, y_target)])
-                            else:
-                                val_metric += np.array([val.item() for val in val_metric_fn(y_pred, y_target)])
+                        if val_metric is None:
+                            val_metric = np.array([val.item() for val in val_metric_fn(y_pred, y_target)])
+                        else:
+                            val_metric += np.array([val.item() for val in val_metric_fn(y_pred, y_target)])
 
-                            val_count += 1
+                        val_count += 1
 
-                    val_metrics.append(val_metric / val_count)
-                    if rank==0:
-                        pbar.set_description('Train/val Loss: {0:.5e}, {1:.5e}    Epoch'.format(loss, val_metrics[-1][0]))
-                    if self.outdir is not None:
-                        is_best = val_metrics[-1][0] < self.best_val_loss
-                        if is_best:
-                            self.best_val_loss = val_metrics[-1][0]
-                    if ((np.std(np.array(val_metrics)[-10:,0])<0.01*(np.mean(np.array(val_metrics)[-10:,0])) and (i>=10) and (i<120) and (i%10==0))):
-                        print("bad trainning: {0}".format(i), flush=True)
+                val_metrics.append(val_metric / val_count)
+                if rank==0:
+                    pbar.set_description('Train/val Loss: {0:.5e}, {1:.5e}    Epoch'.format(loss, val_metrics[-1][0]))
+                if self.outdir is not None:
+                    is_best = val_metrics[-1][0] < self.best_val_loss
+                    if is_best:
+                        self.best_val_loss = val_metrics[-1][0]
+                if ((np.std(np.array(val_metrics)[-10:,0])<0.01*(np.mean(np.array(val_metrics)[-10:,0])) and (i>=10) and (i<120) and (i%10==0))):
+                    print("bad trainning: {0}".format(i), flush=True)
+                    for ind, param_group in enumerate(self.optim.param_groups):
+                        lr = param_group['lr']
+                    self.model_old.init_weight()
+                    del self.model
+                    if pool is not None:
+                        self.model = DDP(self.model_old)
+                    else:
+                        self.model = self.model_old
+                    self.optim = torch.optim.AdamW(params=self.model.parameters(), lr=lr, weight_decay=1E-4)
+                    if ((i>10)&(lr>2E-4)):
                         for ind, param_group in enumerate(self.optim.param_groups):
                             lr = param_group['lr']
+                            if lr>2E-6:
+                                print("learning rate too large: {0}".format(lr), flush=True)
+                                self.optim.param_groups[ind]['lr'] = lr/2.
+
+
+
+                if (np.isnan(val_metrics[-1][0])) or (val_metrics[-1][0]>1E10) or ((val_metrics[-1][0]-old>5*old) and (i!=0)) or ((loss-told>5*told) and (i!=0)) :
+                    #print( (val_metrics[-1][0]-old>5*old), ((loss-told>5*told)), flush=True)
+                    for ind, param_group in enumerate(self.optim.param_groups):
+                        lr = param_group['lr']
+                    #self.model = self.model_old
+                    ischeckpoint = self.load_checkpoint(ismpi=size>1)
+                        #if pool is not None:
+                            #self.model = DDP(self.model)
+                            #state = PowerSGDState(process_group=None, matrix_approximation_rank=1)
+                            #self.model.register_comm_hook(state, batched_powerSGD_hook)
+                    if (not ischeckpoint):
                         self.model_old.init_weight()
                         del self.model
                         if pool is not None:
                             self.model = DDP(self.model_old)
+                            #state = PowerSGDState(process_group=None, matrix_approximation_rank=1)
+                            #self.model.register_comm_hook(state, batched_powerSGD_hook)
                         else:
                             self.model = self.model_old
-                        self.optim = torch.optim.AdamW(params=self.model.parameters(), lr=lr, weight_decay=1E-4)
-                        if ((i>10)&(lr>2E-4)):
+                    self.optim = torch.optim.AdamW(params=self.model.parameters(), lr=lr, weight_decay=1E-4)
+                    if (np.isnan(val_metrics[-1][0])) or (val_metrics[-1][0]>1E10) or (val_metrics[-1][0]-old>10*old):
+                        if (i>10):
                             for ind, param_group in enumerate(self.optim.param_groups):
                                 lr = param_group['lr']
                                 if lr>2E-6:
                                     print("learning rate too large: {0}".format(lr), flush=True)
                                     self.optim.param_groups[ind]['lr'] = lr/2.
-
-
-
-                    if (np.isnan(val_metrics[-1][0])) or (val_metrics[-1][0]>1E10) or ((val_metrics[-1][0]-old>5*old) and (i!=0)) or ((loss-told>5*told) and (i!=0)) :
-                        #print( (val_metrics[-1][0]-old>5*old), ((loss-told>5*told)), flush=True)
+                    if not (np.isnan(val_metrics[-1][0])):
+                        if (val_metrics[-1][0]-old>5*old):
+                            val_metrics[-1][0] = old
+                    #else:
+                    #    for param_group in self.optim.param_groups:
+                    #        lr = param_group['lr']
+                    #        print("learning rate too large: {0}".format(lr), flush=True)
+                    #        param_group['lr'] = lr/2.
+                else: 
+                    criteria = es.step(val_metrics[-1][0], loss)
+                    if criteria == 1:
                         for ind, param_group in enumerate(self.optim.param_groups):
                             lr = param_group['lr']
-                        #self.model = self.model_old
-                        ischeckpoint = self.load_checkpoint(ismpi=size>1)
-                            #if pool is not None:
-                                #self.model = DDP(self.model)
-                                #state = PowerSGDState(process_group=None, matrix_approximation_rank=1)
-                                #self.model.register_comm_hook(state, batched_powerSGD_hook)
-                        if (not ischeckpoint):
-                            self.model_old.init_weight()
-                            del self.model
-                            if pool is not None:
-                                self.model = DDP(self.model_old)
-                                #state = PowerSGDState(process_group=None, matrix_approximation_rank=1)
-                                #self.model.register_comm_hook(state, batched_powerSGD_hook)
+                            wd = param_group['weight_decay']
+                            if lr>2E-6:
+                                print("\n learning rate too large: {0}\n".format(lr), flush=True)
+                                self.optim.param_groups[ind]['lr'] = lr/2.
+                                self.optim.param_groups[ind]['weight_decay'] = wd/2
                             else:
-                                self.model = self.model_old
-                        self.optim = torch.optim.AdamW(params=self.model.parameters(), lr=lr, weight_decay=1E-4)
-                        if (np.isnan(val_metrics[-1][0])) or (val_metrics[-1][0]>1E10) or (val_metrics[-1][0]-old>10*old):
-                            if (i>10):
-                                for ind, param_group in enumerate(self.optim.param_groups):
-                                    lr = param_group['lr']
-                                    if lr>2E-6:
-                                        print("learning rate too large: {0}".format(lr), flush=True)
-                                        self.optim.param_groups[ind]['lr'] = lr/2.
-                        if not (np.isnan(val_metrics[-1][0])):
-                            if (val_metrics[-1][0]-old>5*old):
-                                val_metrics[-1][0] = old
-                        #else:
-                        #    for param_group in self.optim.param_groups:
-                        #        lr = param_group['lr']
-                        #        print("learning rate too large: {0}".format(lr), flush=True)
-                        #        param_group['lr'] = lr/2.
-                    else: 
-                        criteria = es.step(val_metrics[-1][0], loss)
-                        if criteria == 1:
-                            for ind, param_group in enumerate(self.optim.param_groups):
-                                lr = param_group['lr']
-                                wd = param_group['weight_decay']
-                                if lr>2E-6:
-                                    print("\n learning rate too large: {0}\n".format(lr), flush=True)
-                                    self.optim.param_groups[ind]['lr'] = lr/2.
-                                    self.optim.param_groups[ind]['weight_decay'] = wd/2
-                                else:
-                                    es.cooling=0
-                            
-                        if criteria ==2:
-                            print("early stop", flush=True)
-                            for ind, param_group in enumerate(self.optim.param_groups):
-                                lr = param_group['lr']
-                                print("learning rate", lr, flush=True)
-                            if rank==0:
-                                break
-                        if criteria ==3:
-                            for ind, param_group in enumerate(self.optim.param_groups):
-                                wd = param_group['weight_decay']
-                                print("\n weight decay too small: {0}\n".format(wd), flush=True)
-                                if wd<1E0:
-                                    self.optim.param_groups[ind]['weight_decay'] = wd*2
-                                #else:
-                                #    es.cooling_weight_decay=0
-                    old = val_metrics[-1][0]
-                    told = loss
-                            
-                if (self.outdir is not None)&(rank==0):
-                    if pool is not None:
-                        save_checkpoint({'epoch': i + 1,
-                                   'state_dict': self.model.module.state_dict(),
-                                   'optim_dict' : self.optim.state_dict(),
-                                   'mpi_state_dict': self.model.state_dict()
-                                   },
-                                   is_best=is_best,
-                                   checkpoint=self.outdir)
-                    else:
-                        save_checkpoint({'epoch': i + 1,
-                                   'state_dict': self.model.state_dict(),
-                                   'optim_dict' : self.optim.state_dict()},
-                                   is_best=is_best,
-                                   checkpoint=self.outdir)
+                                es.cooling=0
+                        
+                    if criteria ==2:
+                        print("early stop", flush=True)
+                        for ind, param_group in enumerate(self.optim.param_groups):
+                            lr = param_group['lr']
+                            print("learning rate", lr, flush=True)
+                        if rank==0:
+                            break
+                    if criteria ==3:
+                        for ind, param_group in enumerate(self.optim.param_groups):
+                            wd = param_group['weight_decay']
+                            print("\n weight decay too small: {0}\n".format(wd), flush=True)
+                            if wd<1E0:
+                                self.optim.param_groups[ind]['weight_decay'] = wd*2
+                            #else:
+                            #    es.cooling_weight_decay=0
+                old = val_metrics[-1][0]
+                told = loss
+                        
+            if (self.outdir is not None)&(rank==0):
+                if pool is not None:
+                    save_checkpoint({'epoch': i + 1,
+                               'state_dict': self.model.module.state_dict(),
+                               'optim_dict' : self.optim.state_dict(),
+                               'mpi_state_dict': self.model.state_dict()
+                               },
+                               is_best=is_best,
+                               checkpoint=self.outdir)
+                else:
+                    save_checkpoint({'epoch': i + 1,
+                               'state_dict': self.model.state_dict(),
+                               'optim_dict' : self.optim.state_dict()},
+                               is_best=is_best,
+                               checkpoint=self.outdir)
 
 
-                    if (i%100)==0: 
-                        train_loss = np.array(train_losses)
-                        val_metric = np.array(val_metrics)
-                        fig, axes = plt.subplots(1,4,figsize=(15,5))
-                        axes[0].plot(np.arange(1, len(train_loss)+1), train_loss, label='Training Mean')
-                        axes[0].set_yscale('log')
-                        axes[0].legend()
-                        axes[1].plot(np.arange(1, len(val_metric[:,0])+1), val_metric[:,0], label='Validation loss')
-                        axes[1].set_yscale('log')
-                        axes[1].legend()
-                        axes[2].plot(np.arange(1, len(val_metric[:,0])+1), val_metric[:,1], label='error max')
-                        axes[2].set_yscale('log')
-                        axes[2].legend()
-                        axes[3].plot(np.arange(1, len(val_metric[:,0])+1), val_metric[:,2], label='error median')
-                        axes[3].set_yscale('log')
-                        axes[3].legend()
-                        plt.xlabel('Epoch')
-                        plt.ylabel('$\\chi^2 / dof$')
-                        plt.legend()
-                        plt.savefig(os.path.join(self.outdir, "training_progress.png"))
-                        plt.close()
+                if (i%100)==0: 
+                    train_loss = np.array(train_losses)
+                    val_metric = np.array(val_metrics)
+                    fig, axes = plt.subplots(1,4,figsize=(15,5))
+                    axes[0].plot(np.arange(1, len(train_loss)+1), train_loss, label='Training Mean')
+                    axes[0].set_yscale('log')
+                    axes[0].legend()
+                    axes[1].plot(np.arange(1, len(val_metric[:,0])+1), val_metric[:,0], label='Validation loss')
+                    axes[1].set_yscale('log')
+                    axes[1].legend()
+                    axes[2].plot(np.arange(1, len(val_metric[:,0])+1), val_metric[:,1], label='error max')
+                    axes[2].set_yscale('log')
+                    axes[2].legend()
+                    axes[3].plot(np.arange(1, len(val_metric[:,0])+1), val_metric[:,2], label='error median')
+                    axes[3].set_yscale('log')
+                    axes[3].legend()
+                    plt.xlabel('Epoch')
+                    plt.ylabel('$\\chi^2 / dof$')
+                    plt.legend()
+                    plt.savefig(os.path.join(self.outdir, "training_progress.png"))
+                    plt.close()
 
 
 
@@ -458,6 +449,9 @@ class Predictor:
             return np.array(train_losses)
 
     def load_checkpoint(self, ismpi=False):
+        """
+        internal use only
+        """
         if os.path.isfile(os.path.join(self.outdir, "best.pth.tar")):
             load_checkpoint(os.path.join(self.outdir, "best.pth.tar"), self.model, self.optim, device=self.device, ismpi=ismpi)
             return True
@@ -465,7 +459,16 @@ class Predictor:
             return False
 
     def predict(self, X, no_grad=True):
-        #start_time = time.time()
+        """
+        make model evaluation 
+
+        Args:
+            X (torch tensor): parameters 
+            no_grad (bool): True: not keep gradient information, Flase: keep gradient information
+
+        Returns:
+            torch.tensor: model evaluation 
+        """
         self.model.eval()
 
         if (len(X.shape) == 1):
@@ -498,6 +501,5 @@ class Predictor:
 
         if one_input:
             y_pred = y_pred.view(-1)
-        #print("--- %s seconds ---" % (time.time() - start_time))
         return y_pred
 

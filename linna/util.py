@@ -47,13 +47,13 @@ def makepositivedefinite(cov, fcut=0.99):
     eigvals[ind:]=eigvals[ind]
     return eigvec @ np.diag(eigvals) @ eigvec.T
 
-
 ##Auxilery function 
 class CPU_Unpickler(pickle.Unpickler):
     def find_class(self, module, name):
         if module == 'torch.storage' and name == '_load_from_bytes':
             return lambda b: torch.load(io.BytesIO(b), map_location='cpu')
         else: return super().find_class(module, name)
+
 def get_good_walker_list(log_prob_samples):
     x = np.mean(log_prob_samples[-10000:,:], axis=0)
     X = np.array(list(zip(x,np.zeros(len(x)))), dtype=np.int)
@@ -92,6 +92,7 @@ def read_chain_and_cut(chainname, nk, ntimes=20, walkercut=False, method="emcee"
 
 def _dummy_callback(x):
     pass 
+
 if not nompi:
     class chtoPool(MPIPool):
         """
@@ -251,7 +252,6 @@ if not nompi:
                     self.comm.send(["bcast", [worker, args]], dest=workers, tag=tid)
             worker(0)
 
-
 class chtoMultiprocessPool:
     """
         pool class if one wish to to multiprocess
@@ -295,6 +295,7 @@ def gauss2unif(x):
             torch.tensor: output
     """
     return 0.5 * (1 + torch.erf(x / np.sqrt(2)))
+
 def invgauss2unif(x):
     """
         inverse transform a guaaisan distributed random variable to a uniformly distributed variable
@@ -649,6 +650,8 @@ def retrieve_model_wrapper(outdir, nnmodel_in=ChtoModelv2):
     nshapein = np.loadtxt(os.path.join(outdir, "train_samples_x.txt")).shape[1]
     nshapeout = np.load(os.path.join(outdir, "train_samples_y.npy")).shape[1]
     model, y_invtransform_data = retrieve_model(outdir, nshapein, nshapeout, nnmodel_in=ChtoModelv2)
+    model.model = model.model.to(memory_format=torch.channels_last)
+    model.MKLDNN=True
     return lambda x: y_invtransform_data(model.predict(torch.from_numpy(x.astype(np.float32))).to("cpu").clone())
 
 class NN_samplerv1:
@@ -851,6 +854,7 @@ class NN_samplerv1:
         samp = sampler.HMCSampler(log_prob, dlnp, ddlnp, ndim, nwalkers, x0=x0, m=None, transform=transform, torchspeed=True)
         samp.calc_hess_mass_mat(maxiter=1E7, gtol=1E0)
         samp.sample(pool, max_n, 0,0,Madapt, outdir=self.outdir, overwrite=False, ntimes=50, method="nuts", incremental=True, progress=True)
+
 def gaussianlogliklihood( m, data, invcov):
     d = m-data
     return (d@(invcov)@d.T*(-0.5))[0][0]

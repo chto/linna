@@ -219,27 +219,19 @@ def ml_sampler_core(ntrainArr, nvalArr, nkeepArr, ntimesArr, ntautolArr, meanshi
                         if  os.path.isfile(outdir_list[-1] + "/finish.pkl"):
                             break
 
-
-
-        
         #Retrieve model  
         model, y_invtransform_data = retrieve_model(outdir_in, len(init), len(data), nnmodel_in)
         if not docuda:
             model.model = model.model.to(memory_format=torch.channels_last)
             model.MKLDNN=True
-
-
         #Do MCMC
         if os.path.isfile(os.path.join(outdir_in, filename)):
             continue
-
         invcov_new = torch.from_numpy(inv_cov.astype(np.float32)).to('cpu').detach().clone().requires_grad_()
         data_new = torch.from_numpy(data.astype(np.float32)).to('cpu').detach().clone().requires_grad_()
         if loglikelihoodfunc is None:
             loglikelihoodfunc = gaussianlogliklihood
         log_prob = Log_prob(data_new, invcov_new, model, y_invtransform_data, transform, temperature, nograd=True, loglikelihoodfunc=loglikelihoodfunc) 
-        #dlnp = Dlnp(data_new, invcov_new, model, y_invtransform_data, transform, temperature)
-        #ddlnp = Ddlnp(data_new, invcov_new, model, y_invtransform_data, transform, temperature)
         dlnp = None
         ddlnp = None
         if pool is not None:
@@ -257,6 +249,7 @@ def ml_sampler_core(ntrainArr, nvalArr, nkeepArr, ntimesArr, ntautolArr, meanshi
         chain = np.loadtxt(chain_name)[-100000:,:-1]
         log_prob_samples_x = np.loadtxt(chain_name)[-100000:,-1]
 
+    #Optional importance sampling 
     if 'nimp' in params.keys():
         if not os.path.isfile(outdir+"/samples_im.npy"):
             chain_name = os.path.join(os.path.join(outdir, "iter_{0}/".format(len(ntrainArr)-1)), filename[:-3])
