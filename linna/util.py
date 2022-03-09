@@ -635,24 +635,26 @@ def retrieve_model(outdir, inshape, outshape, nnmodel_in=ChtoModelv2):
     model.load_checkpoint()
     return model, y_invtransform_data
 
-def retrieve_model_wrapper(outdir, nnmodel_in=ChtoModelv2):
+def retrieve_model_wrapper_in(outdir, nnmodel_in=ChtoModelv2, no_grad=True):
     """
     Retrieve the trained model (more user friendly than `retrieve_model`)
 
     Args:
         Outdir (string): directory of the outdir
         nnmodel_in (callable, optional): neural network instance defined in nn.py
+        no_grad (bool): True: not keep gradient information, Flase: keep gradient information
 
     Returns:
-        model (callable): a function takes in cosmological and nuisance parameters (numpy array) and returns the prediction of the data vector using the neural network. Note that the output is in the format of torch.tensor, so that its differentiation can be evaluated. 
-        
-    """ 
+        model (callable): a function takes in cosmological and nuisance parameters (torch tensor) and returns the prediction of the data vector using the neural network. Note that the output is in the format of torch.tensor, so that its differentiation can be evaluated.
+
+    """
     nshapein = np.loadtxt(os.path.join(outdir, "train_samples_x.txt")).shape[1]
     nshapeout = np.load(os.path.join(outdir, "train_samples_y.npy")).shape[1]
     model, y_invtransform_data = retrieve_model(outdir, nshapein, nshapeout, nnmodel_in=ChtoModelv2)
-    model.model = model.model.to(memory_format=torch.channels_last)
-    model.MKLDNN=True
-    return lambda x: y_invtransform_data(model.predict(torch.from_numpy(x.astype(np.float32))).to("cpu").clone())
+    if no_grad:
+        model.model = model.model.to(memory_format=torch.channels_last)
+        model.MKLDNN=True
+    return lambda x: y_invtransform_data(model.predict(x, no_grad=no_grad).to("cpu").clone())
 
 class NN_samplerv1:
     """
