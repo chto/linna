@@ -27,11 +27,11 @@ LINNA
    - 6x2pt+N, a joint analysis of data vectors in 3x2pt and 4x2pt+N.
 
 Documentation
---------
+-------------
 Read the docs at https://linna.readthedocs.io/en/latest/readme.html#documentation
 
 Installation
---------
+-------------
 
 ::
 
