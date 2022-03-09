@@ -17,8 +17,18 @@ from numpy import diff
 
 
 class EarlyStopping(object):
-#Copy from https://gist.github.com/stefanonardo/693d96ceb2f531fa05db530f3e21517d
+    """
+    class handles conditions of terminating neural network training 
+    """
     def __init__(self, mode='min', min_delta=0, patience=10, nqueue=200,  percentage=False):
+        """
+        Args:
+            mode (string): Modes to determine whether the loss function is decreasing or not. 
+            min_delta (float):  The loss is decreasing if the new score is less than best score - best*min_delta/100 (percentage == False) or less than best score - best*min_delta (percentage==True) 
+            parience (int): if best score is not updated after patience steps, the nn will stop training
+            nqueue (int): number of step to estimate derivative 
+            percentage (bool): determine how min_delta is used 
+        """
         self.mode = mode
         self.min_delta = min_delta
         self.patience = patience
@@ -38,6 +48,11 @@ class EarlyStopping(object):
             self.step = lambda a: False
 
     def step(self, metrics, metrics_t):
+        """
+        Args:
+             metrics (float): validation score 
+             metrics_t (float): training score
+        """
         self.queue_t.append(metrics_t)
         self.queue_v.append(metrics)
         if len(self.queue_t)>self.nqueue:
