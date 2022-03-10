@@ -11,6 +11,7 @@ Stable release
 To install linna, run this command in your terminal:
 
 .. code-block:: console
+
     $ pip install --no-deps linna
     $ pip install linna
 
