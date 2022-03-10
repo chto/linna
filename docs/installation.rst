@@ -11,10 +11,11 @@ Stable release
 To install linna, run this command in your terminal:
 
 .. code-block:: console
-
+    $ pip install --no-deps linna
     $ pip install linna
 
 This is the preferred method to install linna, as it will always install the most recent stable release.
+The two steps installation is to avoid the problem that pypi's package cannot depend on non-pypi packages.
 
 If you don't have `pip`_ installed, this `Python installation guide`_ can guide
 you through the process.

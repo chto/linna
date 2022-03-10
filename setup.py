@@ -10,7 +10,7 @@ with open('README.rst') as readme_file:
 with open('HISTORY.rst') as history_file:
     history = history_file.read()
 
-requirements = ["numpy", "torch>=1.10.1", "emcee>=3.0.2", "h5py", "pydoe2", "scikit-learn", "torch-lr-finder", "matplotlib", "zeus-mcmc", "numdifftools", "sample_generator"]
+requirements = ["numpy", "torch>=1.10.1", "emcee>=3.0.2", "h5py", "pydoe2", "scikit-learn", "torch-lr-finder", "matplotlib", "zeus-mcmc", "numdifftools", "sample_generator @ git+https://github.com/tmcclintock/Training_Sample_Generator.git#egg=sample_generator"]
 
 test_requirements = ['pytest>=3', ]
 
@@ -40,6 +40,6 @@ setup(
     test_suite='tests',
     tests_require=test_requirements,
     url='https://github.com/chto/linna',
-    version='0.0.2',
+    version='0.0.3',
     zip_safe=False,
 )
