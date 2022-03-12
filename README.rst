@@ -18,13 +18,15 @@ LINNA
 
 **Linna (Likelihood Inference Neural Network Accelerator) is a tool to accelerate Bayesian posterior inferences using artificial neural networks.**
 
-- Linna automatically builds training data, trains the neural network, and produces a Markov chain that samples the posterior. 
-- Reduces the runtime of survey cosmological analyses of the Dark Energy Survey by a factor 8-50. 
-- Linna is verified to enable accurate and efficicient sampling for Vera Rubin Observatory's Legacy Survey of Space and Time (LSST) year 10 multi-probe analyses.
-- Linna is explicity verified for the following three multi-probe analysese:
-   - 3x2pt, a joint analysis of galaxy clustering, galaxy--galaxy lensing, and cosmic shear.
-   - 4x2pt+N, a joint analysis of cluster--galaxy cross correlations, cluster lensing, cluster clustering, and cluster abundances.
-   - 6x2pt+N, a joint analysis of data vectors in 3x2pt and 4x2pt+N.
+- Linna automatically builds training data, trains the neural network, and produces a Markov chain that samples the posterior.
+- Linna reduces the runtime of survey cosmological analyses of the Dark Energy Survey by a factor of 8-50.
+- Linna is verified to enable accurate and efficient sampling for Vera Rubin Observatory's Legacy Survey of Space and Time (LSST) year ten multi-probe analyses.
+- Linna is explicitly verified for the following three multi-probe analyses:
+    - 3x2pt, a joint analysis of galaxy clustering, galaxy-galaxy lensing, and cosmic shear.
+    - 4x2pt+N, a joint analysis of cluster--galaxy cross correlations, cluster lensing, cluster clustering, and cluster abundances.
+    - 6x2pt+N, a joint analysis of data vectors in 3x2pt and 4x2pt+N.
+
+
 
 Documentation
 -------------
