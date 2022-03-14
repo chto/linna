@@ -13,8 +13,8 @@ LINNA
         :target: https://linna.readthedocs.io/en/latest/?version=latest
         :alt: Documentation Status
         
-.. image:: https://img.shields.io/badge/arXiv-<INDEX>-<COLOR>.svg
-        :target: https://arxiv.org/abs/1234
+.. image:: https://img.shields.io/badge/arXiv-2003.05583-blue.svg
+        :target: https://arxiv.org/abs/2203.05583
 
 **Linna (Likelihood Inference Neural Network Accelerator) is a tool to accelerate Bayesian posterior inferences using artificial neural networks.**
 
@@ -40,6 +40,19 @@ Installation
     git clone https://github.com/chto/linna.git
     cd linna 
     python setup.py install
+
+Attribution
+-----------
+Please cite the paper below if you find LINNA useful:
+::
+
+    @article{linna2022,
+    author = {Chun-Hao To and Eduardo Rozo and Elisabeth Krause and Hao-Yi Wu and Risa H. Wechsler and Andrés N. Salcedo},
+    title = {LINNA: Likelihood Inference Neural Network Accelerator},
+    year = {2022},
+    journal={arXiv preprint arXiv:2203.05583}
+    }
+
 
 
 Example
