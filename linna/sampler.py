@@ -381,8 +381,9 @@ def checkmeanstd(samples, meanshift, stdshift):
     """
     firsthalf = samples[:int(len(samples)/2)].reshape(-1, samples.shape[-1])
     secondhalf = samples[int(len(samples)/2):].reshape(-1, samples.shape[-1])
-    meanshifte = np.max(np.abs(np.mean(firsthalf, axis=0)-np.mean(secondhalf, axis=0))/np.std(secondhalf, axis=0))
-    stdshifte = np.max((np.std(firsthalf, axis=0)-np.std(secondhalf, axis=0))/np.std(secondhalf, axis=0))
+    meanshifte = np.median(np.abs(np.mean(firsthalf, axis=0)-np.mean(secondhalf, axis=0))/np.std(secondhalf, axis=0))
+    stdshifte = np.median((np.std(firsthalf, axis=0)-np.std(secondhalf, axis=0))/np.std(secondhalf, axis=0))
+    print(meanshifte, stdshifte, flush=True)
     return (meanshifte<meanshift)&(stdshifte<stdshift)
 
 class HMCSampler:

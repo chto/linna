@@ -42,24 +42,34 @@ from mpi4py import MPI
 from linna.main import ml_sampler,ml_sampler_core
 from linna.util import *
 from linna.nn import *
+import torch
 comm = MPI.COMM_WORLD
 size = comm.Get_size()
 rank = comm.Get_rank()
 
-
-
+class Externalloglike:
+    def __init__(self,  likeArr):
+        self.likeArr = likeArr 
+    def __call__(self, x):
+        data = x #x.detach().numpy()
+        return np.sum([like(data) for like in self.likeArr])
 def get_prior_dic_init(param):
     (varied_params,
      cosmo_min, cosmo_fid, cosmo_max,
     nuisance_min, nuisance_fid, nuisance_max, cosmo_mean, cosmo_sigma, nuisance_mean, nuisance_sigma) = run_cosmolike_4x2ptN.parse_priors_and_ranges(param)
+    print(varied_params)
     nsigma=5
     prior_range = []
     init = []
     for ind, param in enumerate(varied_params):
-        if param in cosmo_fid.names():
-            sigma = getattr(cosmo_sigma,param)
+        if param=="S_8":
+            param_in='sigma_8'
+        else:
+            param_in = param
+        if param_in in cosmo_fid.names():
+            sigma = getattr(cosmo_sigma, param_in)
             if sigma!=0:
-                mean = getattr(cosmo_mean,param)
+                mean = getattr(cosmo_mean, param_in)
                 prior_range.append({'param': param,
                                     'dist': 'gauss',
                                     'arg1': mean,
@@ -67,9 +77,9 @@ def get_prior_dic_init(param):
             else:
                 prior_range.append({'param': param,
                     'dist': 'flat',
-                    'arg1': getattr(cosmo_min, param),
-                    'arg2': getattr(cosmo_max, param)})
-                mean = getattr(cosmo_fid, param)
+                    'arg1': getattr(cosmo_min, param_in),
+                    'arg2': getattr(cosmo_max, param_in)})
+                mean = getattr(cosmo_fid, param_in)
             init.append(mean)
         elif param in nuisance_fid.names():
             ind_in = int(param.split("_")[-1])
@@ -91,7 +101,7 @@ def get_prior_dic_init(param):
         else:
             print("no param : ", param)
             assert(0)
-    return prior_range, np.array(init)
+    return prior_range, np.array(init), varied_params, cosmo_fid
 
 
 class Model_func:
@@ -141,8 +151,17 @@ def submitgpujob(allargs):
         fh.writelines("#SBATCH --gres gpu:1\n")
         fh.writelines("#SBATCH  --constraint=\"{0}\"\n".format(gpuconstraint))
         fh.writelines("#SBATCH --gpu_cmode=shared\n")
+        fh.writelines("#SBATCH --mem=8GB\n")
         fh.writelines("#SBATCH -p {0}\n".format(qos))
+        fh.writelines("unset SLURM_CPU_BIND_LIST\n")
+        fh.writelines("unset SLURM_CPU_BIND_TYPE\n")
+        fh.writelines("unset SLURM_CPU_BIND\n")
+        fh.writelines("unset SLURM_MEM_PER_NODE\n")
+        #fh.writelines("unset $(env | cut -d= -f1) \n")
+        fh.writelines("printenv\n")
         fh.writelines("srun python {0} {1} {2}\n".format(os.path.join(os.path.dirname(os.path.abspath(__file__)), "gpuscript.py"), outdir, timein))
+    os.system("unset SLURM_CPU_BIND_LIST")
+    os.system("unset  \"${!myvarname@}\"")
     os.system("sbatch %s" %jobfile)
     
 
@@ -150,6 +169,7 @@ def main():
     import time
     start = time.time()
     method = sys.argv[1]
+    print("starting....", flush=True)
     params = util_chto.chto_yamlload(sys.argv[3], parent_dir=sys.argv[4])         
 
     outdir = params['outdir']
@@ -186,7 +206,7 @@ def main():
             DD_vector = None
             DD_cut = None
         if rank==0:
-            run_4x2ptN_wrapper.make_mask_4x2ptN(maskfile, params, notinitialized=True, DD_vector=DD_vector, DD_cut=DD_cut)
+            dataposition = run_4x2ptN_wrapper.make_mask_4x2ptN(maskfile, params, notinitialized=True, DD_vector=DD_vector, DD_cut=DD_cut, returncut=True)
         else:
             while(1):
                 try:
@@ -194,20 +214,39 @@ def main():
                         break
                 except:
                     pass
+            dataposition= None
+        dataposition = comm.bcast(dataposition, root=0)
     else:
         maskfile = params['mask_file']
+        with open(params['dataposition'], 'rb') as f:
+                dataposition = pickle.load(f)
     init_cosmolike = cosmolike_libs_real_mpp_cluster.Initlized_cosmolike(bytes(maskfile, encoding='utf-8'), params)
     init_cosmolike.set_cosmolike()
-    priors, init = get_prior_dic_init(params)
+    print(dataposition.keys())
+    if 'gammat' in dataposition.keys():
+        cosmolike_libs_real_mpp_cluster.set_gglstart(dataposition['gammat'])
+    if 'gamma_c' in dataposition.keys():
+        cosmolike_libs_real_mpp_cluster.set_csstart(dataposition['gamma_c'])
+    priors, init, varied_params, cosmo_fid = get_prior_dic_init(params)
+    likeArr = []
+    if 'BAO' in params['statsnames']:
+        print("initBAO", flush=True)
+        likeArr.append(cosmolike_libs_real_mpp_cluster.Baolike(varied_params, cosmo_fid))
+    if 'SN' in params['statsnames']:
+        print("initSN", flush=True)
+        likeArr.append(cosmolike_libs_real_mpp_cluster.SNlike(varied_params, cosmo_fid))
+    externalloglike=None
+    if (len(likeArr)!=0):
+        externalloglike = Externalloglike(likeArr)
     if "omegab2cut" in params:
         omegab2cut = params['omegab2cut']
     else:
-        omegab2cut = [3,5,0.005,0.039]
-    #try:
-    pool = chtoPool(comm)
-    #except:
-    #    print("no MPI", flush=True)
-    #    pool = None
+        omegab2cut = None#[3,5,0.005,0.039]
+    try:
+        pool = chtoPool(comm)
+    except:
+        print("no MPI", flush=True)
+        pool = None
     tsize=1
     mask = np.loadtxt(maskfile)[:,1]
     mask = mask>0
@@ -224,6 +263,23 @@ def main():
         return cov
 
     cov = readcov(np.loadtxt(params['base_dir']+params['cov_file']))
+    cov[np.abs(cov)>1E10]=0
+    data = np.loadtxt(params['base_dir']+params['data_file'])
+    if 'Ystatistics' in params.keys():
+        lendata = cosmolike_libs_real_mpp_cluster.get_Ndata()
+        print(lendata, len(data))
+        if params['Ystatistics']>0:
+            Tmatrix = np.zeros((lendata, lendata))
+            for i in range(lendata):
+                for j in range(lendata):
+                    Tmatrix[i][j] = cosmolike_libs_real_mpp_cluster.T_Ytransform_full(i,j)
+            if len(cov)>lendata:
+                cov = cov[:lendata]
+                cov = cov[:,:lendata]
+            if len(data[:,1])>lendata:
+                data = data[:lendata]
+            cov = np.dot(np.dot(Tmatrix,cov),Tmatrix.T)
+            data[:,1] = np.dot(Tmatrix, data[:,1]) 
     if len(mask)!=len(cov):
         print("mask size not the same as cov, mask is fixed to match cov", flush=True)
         if len(mask)>len(cov):
@@ -234,8 +290,9 @@ def main():
             mask = masknew
 
     cov = cov[:,mask][mask,:]
+    data = data[mask,1]
 
-    data = np.loadtxt(params['base_dir']+params['data_file'])[mask,1]
+   
     inv_cov = np.linalg.inv(cov)
     sigma = np.sqrt(np.diag(cov))
    
@@ -251,11 +308,16 @@ def main():
             sys.exit(0)
     if pool is not None:
         if pool.is_master():
-            if 'automaticgpu' in params:
+            if ('automaticgpu' in params)&(gpunode=='None') :
                 params['automaticgpu']['outdir'] = params['outdir']
-                submitgpujob(params['automaticgpu'])
+                if not os.path.isdir(outdir+"/iter_3/"):
+                    try:
+                        os.remove(params['automaticgpu']['outdir']+"/gpunodeinfo.pkl")
+                    except:
+                        pass
+                    submitgpujob(params['automaticgpu'])
                 gpunode = 'automaticgpu'
-            ml_sampler_core(ntrainArr, nvalArr, nkeepArr, ntimesArr, ntautolArr, params['meanshiftArr'], params['stdshiftArr'], outdir, theory, priors, data, cov,  init, pool, nwalkers, device, dolog10index=[0,1], ypositive=False, temperatureArr=temperatureArr, omegab2cut=omegab2cut, docuda=False, tsize=tsize, gpunode=gpunode, nnmodel_in=nnmodel_in, params=params, method=method)
+            ml_sampler_core(ntrainArr, nvalArr, nkeepArr, ntimesArr, ntautolArr, params['meanshiftArr'], params['stdshiftArr'], outdir, theory, priors, data, cov,  init, pool, nwalkers, device, dolog10index=[0,1], ypositive=False, temperatureArr=temperatureArr, omegab2cut=omegab2cut, docuda=False, tsize=tsize, gpunode=gpunode, nnmodel_in=nnmodel_in, params=params, method=method, externalloglike=externalloglike)
             end = time.time() 
             print("Runtime of the program is end - start", end-start)
             np.save(outdir+"/time.npy", end-start)
@@ -265,6 +327,8 @@ def main():
                     gpuinfo = pickle.load(f)
                 jobid = gpuinfo["jobid"]
                 os.system("scancel {0}".format(jobid))
+    else:
+        ml_sampler_core(ntrainArr, nvalArr, nkeepArr, ntimesArr, ntautolArr, params['meanshiftArr'], params['stdshiftArr'], outdir, theory, priors, data, cov,  init, pool, nwalkers, device, dolog10index=[0,1], ypositive=False, temperatureArr=temperatureArr, omegab2cut=omegab2cut, docuda=False, tsize=tsize, gpunode=gpunode, nnmodel_in=nnmodel_in, params=params, method=method)
 
 
     if pool is not None:

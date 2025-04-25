@@ -10,7 +10,7 @@ with open('README.rst') as readme_file:
 with open('HISTORY.rst') as history_file:
     history = history_file.read()
 
-requirements = ["numpy", "torch>=1.10.1", "emcee>=3.0.2", "h5py", "pydoe2", "scikit-learn", "torch-lr-finder", "matplotlib", "zeus-mcmc", "numdifftools", "sample_generator @ git+https://github.com/tmcclintock/Training_Sample_Generator.git#egg=sample_generator"]
+requirements = ["numpy", "torch>=1.10.1", "emcee>=3.0.2", "h5py", "pydoe2", "scikit-learn", "torch-lr-finder", "matplotlib", "zeus-mcmc", "numdifftools", "sample_generator @ git+https://github.com/tmcclintock/Training_Sample_Generator.git#egg=sample_generator", "mpi4py", "schwimmbad"]
 
 test_requirements = ['pytest>=3', ]
 

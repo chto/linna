@@ -297,4 +297,81 @@ class pytorchPolynomialLinear:
     def __call__(self, X):
         return torch.matmul(self.trainsform(X),torch.from_numpy(self.coef.T.astype(np.float32)).to('cpu').requires_grad_())
 
+class ChtoModelsimple(nn.Module):
+    """
+        main neural network used by linna
+    """
+    def __init__(self, in_size, out_size, linearmodel, docpu=False): 
+        """
+    
+        Args:
+            in_size (int): size of input data vector
+            out_size (int): size of output data vector
+            linear model (function): input: tensor array, output: tensor array. One might want to add a pretrained model on top of the NN. 
+            docpu (bool) whether to use cpu for evaluation
+        """ 
+        super(ChtoModelsimple, self).__init__()
+        self.channel = 4
+        hidden_size = max(32, int(out_size*32))
+        if out_size>30:
+            hidden_size=1000
+        self.layer1 = nn.Linear(in_size, hidden_size)
+        self.layer2 = ResBlock_batchnorm(hidden_size, self.channel, hidden_size//2) 
+        hidden_size = hidden_size//2
+        self.layer3 = ResBlock_batchnorm(hidden_size, int(self.channel*2), hidden_size//2) 
+        hidden_size = hidden_size//2
+        self.layer4 = ResBlock_batchnorm(hidden_size, int(self.channel*4), hidden_size//2) 
+        hidden_size = hidden_size//2
+        self.layer6 = nn.Linear(hidden_size, hidden_size) 
+        self.layer7 = nn.Linear(hidden_size, out_size) 
+        self.layer8 = nn.Linear(out_size, out_size) 
+        self.init_weight()
+        self.linearmodel = linearmodel
+        self.docpu = docpu
+
+    def init_weight(self):
+        """
+            initialize weights for neural network
+        """
+        for m in self.modules():
+           if type(m)==nn.Linear:
+                nn.init.xavier_uniform_(m.weight)
+                if m.bias is not None:
+                    m.bias.data.fill_(1E-2)
+           elif type(m)==ResBlock_batchnorm:
+                m.init_weight()
+           elif type(m)==ChtoModelsimple:
+                pass
+           elif type(m)==nn.modules.batchnorm.BatchNorm1d:
+                pass
+           else:
+               print(type(m), flush=True)
+               assert(0)
+            
+    def forward(self, s):
+        """
+
+        Args:
+            s (torch tensor): input array
+        Returns:
+            torch tensor: ourput array
+
+        """
+        if self.docpu:
+            s = s.to_mkldnn()
+        s_in  = F.relu(self.layer1(s)) 
+        s_in  = self.layer2(s_in) 
+        s_in  = self.layer3(s_in) 
+        s_in  = self.layer4(s_in) 
+        s_in  = F.relu(self.layer6(s_in))
+        s_in  = F.relu(self.layer7(s_in))
+        if self.linearmodel is not None:
+            s = self.layer8(s_in)+self.linearmodel(s)
+        else:
+            s = self.layer8(s_in)
+        if self.docpu:
+           s = s.to_dense()
+        return s
+
+
 

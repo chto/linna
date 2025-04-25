@@ -78,7 +78,10 @@ def read_chain_and_cut(chainname, nk, ntimes=20, walkercut=False, method="emcee"
         nk = int(np.nanmedian(reader.get_autocorr_time())*nk)
     else:
         nk = int(np.median(reader.get_autocorr_time(quiet=True))*nk)
-    chain = reader.get_value("chain_transformed", discard=0, flat=False, thin=1)
+    try:
+        chain = reader.get_value("chain_transformed", discard=0, flat=False, thin=1)
+    except:
+        chain = reader.get_value("samples", discard=0, flat=False, thin=1)
     log_prob_samples = reader.get_log_prob(discard=0, flat=False, thin=1)
     if walkercut:
         good_walker_list = get_good_walker_list(log_prob_samples)
@@ -635,6 +638,80 @@ def retrieve_model(outdir, inshape, outshape, nnmodel_in=ChtoModelv2):
     model.load_checkpoint()
     return model, y_invtransform_data
 
+def retrieve_model_exist(outdir, inshape, outshape, nnmodel_in=ChtoModelv2):
+    """
+    Retrieve the trained model
+
+    Args:
+        Outdir (string): directory of the outdir
+        inshape (int): input vector size of the model 
+        outshape (int): output vector size of the model 
+        nnmodel_in (callable, optional): neural network instance defined in nn.py
+
+    Returns:
+        linna.predictor_gpu.Predictor: model
+        linna.util.Y_invtransform_data: callable that transform the model to the same space as data vector  
+        
+    """
+    ####Retrive the model 
+    with open(os.path.join(outdir,'y_invtransform_data.pkl'), 'rb') as f:
+        y_invtransform_data = CPU_Unpickler(f).load()
+    with open(os.path.join(outdir,'X_transform.pkl'), 'rb') as f:
+        X_transform = CPU_Unpickler(f).load()
+    X_transform.dev = "cpu"
+    with open(os.path.join(outdir,'y_transform.pkl'), 'rb') as f:
+        y_transform = CPU_Unpickler(f).load()
+    linearmodel = None
+    y_transform.dev = "cpu"
+    f = open(outdir+"/model_args.pkl", 'rb')
+    args = pickle.load(f)
+    outdir_list= args[5]
+    train_x = []
+    train_y = []
+    val_x = []
+    val_y = []
+    for outdir_ in outdir_list:
+        _ = np.loadtxt(os.path.join(outdir_, "train_samples_x.txt"))
+        if len(_)>1:
+            train_x.append(_)
+        _ = np.load(os.path.join(outdir_, "train_samples_y.npy"))
+        if len(_)>1:
+            train_y.append(_)
+        _ = np.loadtxt(os.path.join(outdir_, "val_samples_x.txt"))
+        if len(_)>1:
+            val_x.append(_)
+        _ = np.load(os.path.join(outdir_, "val_samples_y.npy"))
+        if len(_)>1:
+            val_y.append(_)
+        break
+    
+    try: 
+        train_x = np.concatenate(train_x)
+        train_y = np.concatenate(train_y)
+        val_x = np.concatenate(val_x)
+        val_y = np.concatenate(val_y)
+        train_y_last = np.concatenate([np.load(outdir_list[0]+"train_samples_y.npy")])
+        if len(train_y_last)==0:
+            train_y_last= train_y
+    except:
+        train_x = np.array(train_x)
+        train_y = np.array(train_y)
+        val_x = np.array(val_x)
+        val_y = np.array(val_y)
+        train_y_last= train_y
+
+
+    inshape_in, outshape_in = len(train_x[0]), len(train_y[0])
+    if inshape_in > inshape:
+        returnincut = inshape_in
+    else:
+        returnincut = inshape
+
+    nnmodel = nnmodel_in(inshape_in, outshape_in, linearmodel)
+    model = predictor_gpu.Predictor(inshape_in, outshape_in, X_transform=X_transform, y_transform=y_transform,device='cpu', outdir=outdir, model = nnmodel)
+    model.load_checkpoint()
+    return model, y_invtransform_data, returnincut, outshape
+
 def retrieve_model_wrapper_in(outdir, nnmodel_in=ChtoModelv2, no_grad=True):
     """
     Retrieve the trained model (more user friendly than `retrieve_model`)
@@ -727,7 +804,12 @@ class NN_samplerv1:
             if omegab2cut is not None:
                 ombh2 = samples[:,omegab2cut[0]]*samples[:, omegab2cut[1]]**2
                 keep = (ombh2>omegab2cut[2])&(ombh2<omegab2cut[3])
+                if len(omegab2cut)>4:
+                    keep = keep&(samples[:,omegab2cut[4]]>omegab2cut[5])&(samples[:,omegab2cut[4]]<omegab2cut[6])
+                if len(omegab2cut)>6:
+                    keep = keep&(samples[:,omegab2cut[7]]>omegab2cut[8])&(samples[:,omegab2cut[7]]<omegab2cut[9])
                 samples=samples[keep]
+
             Nsample_in+=1000
         return samples[:Nsamples]
 
@@ -763,6 +845,11 @@ class NN_samplerv1:
             if omegab2cut is not None:
                 ombh2 = x[:,omegab2cut[0]]*x[:, omegab2cut[1]]**2
                 keep = (ombh2>omegab2cut[2])&(ombh2<omegab2cut[3])
+                samples = x
+                if len(omegab2cut)>4:
+                    keep = keep&(samples[:,omegab2cut[4]]>omegab2cut[5])&(samples[:,omegab2cut[4]]<omegab2cut[6])
+                if len(omegab2cut)>6:
+                    keep = keep&(samples[:,omegab2cut[7]]>omegab2cut[8])&(samples[:,omegab2cut[7]]<omegab2cut[9])
                 x=x[keep]
             for i in range(x.shape[1]):
                 keep = (x[:, i]>prior_in[i][0])&(x[:, i]<prior_in[i][1])
@@ -796,6 +883,12 @@ class NN_samplerv1:
         if omegab2cut is not None:
             ombh2 = chain[:,omegab2cut[0]]*chain[:, omegab2cut[1]]**2
             keep = (ombh2>omegab2cut[2])&(ombh2<omegab2cut[3])
+            samples = chain
+
+            if len(omegab2cut)>4:
+                keep = keep&(samples[:,omegab2cut[4]]>omegab2cut[5])&(samples[:,omegab2cut[4]]<omegab2cut[6])
+            if len(omegab2cut)>6:
+                keep = keep&(samples[:,omegab2cut[7]]>omegab2cut[8])&(samples[:,omegab2cut[7]]<omegab2cut[9])
             chain=chain[keep]
         for i in range(chain.shape[1]):
             keep = (chain[:, i]>prior_in[i][0])&(chain[:, i]<prior_in[i][1])
@@ -841,7 +934,7 @@ class NN_samplerv1:
 
 
         max_n = 1000000
-        x0 = init+0.01*np.random.randn(nwalkers, ndim)
+        x0 = init+0.001*np.random.randn(nwalkers, ndim)
         samp = sampler.ZeusSampler(log_prob, ndim, nwalkers, x0=x0, transform=transform)
         samp.sample(pool, max_n, outdir=self.outdir, overwrite=False, ntimes=ntimes, incremental=True, progress=False, tautol=tautol, meanshift=meanshift, stdshift=stdshift, nk=nk)
     def _HMC_sample(self, log_prob, dlnp, ddlnp, ndim, nwalkers, init, pool, transform, samp_steps, samp_eps):
@@ -865,7 +958,7 @@ class Log_prob:
     """
     Class do loglikelihood
     """
-    def __init__(self, data_new, invcov_new, model, y_invtransform_data, transform, temperature, loglikelihoodfunc, nograd=False):
+    def __init__(self, data_new, invcov_new, model, y_invtransform_data, transform, temperature, loglikelihoodfunc, nograd=False, externalloglike=None):
         """
         Args:
             data_new (array or torch tensor): data vector
@@ -892,6 +985,7 @@ class Log_prob:
         self.no_grad = nograd
         self.loglikelihoodfunc = loglikelihoodfunc
         self.noduplicate=True
+        self.externalloglike = externalloglike
 
     def __call__(self, x, returntorch=True, inputnumpy=True):
         """
@@ -907,11 +1001,17 @@ class Log_prob:
         if not torch.is_tensor(x):
             x=torch.from_numpy(x.astype(np.float32)).to("cpu").clone().requires_grad_()
         x_in  = self.transform(x,inputnumpy=False, returnnumpy=False)
-        m = self.y_invtransform_data(self.model.predict(x_in,no_grad=self.no_grad))
-        #d = m-self.data_new
-        #(d@(self.invcov_new)@d.T*(-0.5))/self.T+lnprior(x)
+        extlike = 0 
+        if self.externalloglike is not None:
+            x_in_in  = self.transform(x,inputnumpy=False, returnnumpy=True)
+            extlike += self.externalloglike(x_in_in)
+            extlike = (torch.ones(1)*np.float32(extlike))[0]
+        #    extlike = -0.2*(x_in[0]-0.3)**2#(torch.ones(1)*np.float32(extlike))[0]
 
-        like = self.loglikelihoodfunc(m, self.data_new, self.invcov_new)/self.T + lnprior(x) #(d@(self.invcov_new)@d.T*(-0.5))/self.T+lnprior(x)
+            
+        m = self.y_invtransform_data(self.model.predict(x_in,no_grad=self.no_grad))
+        like = self.loglikelihoodfunc(m, self.data_new, self.invcov_new)/self.T + lnprior(x)+extlike
+        #like = extlike
         if torch.isnan(like): 
             return -torch.inf
         else:
@@ -1348,6 +1448,7 @@ def train_NN( nnsampler, cov, inv_cov, sigma, outdir_in, outdir_list,data, dolog
         else:
             y_mean = torch.tensor(y_transform_data(torch.tensor(train_y_last,dtype=torch.float32).to(device)).median(axis=0).values, dtype=torch.float32).to(device)
             y_std = torch.tensor(median_absolute_deviation(y_transform_data(torch.tensor(train_y_last,dtype=torch.float32).to(device)), y_mean, 0), dtype=torch.float32).to(device)
+            y_std[y_std<1E-10] = 1E0
         y_transform = Y_transform_class(y_mean, y_std, device, ypositive=ypositive)
         y_transform.pickle(os.path.join(outdir_in,'y_transform.pkl'))
         y_inv_transform = Y_invtransform_class(y_mean, y_std, data_tensor, device, ypositive=ypositive)
@@ -1408,6 +1509,8 @@ def logp_theory_data(samples, theory, data, invcov, logprior):
     """
     logpall = []
     for t, s in zip(theory, samples):
+        if len(t)>len(data):
+            t = t[:len(data)]
         d = t-data 
         chisq = d.dot(invcov.dot(d))
         logpall.append(-0.5*chisq + logprior(s))

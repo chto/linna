@@ -74,7 +74,7 @@ def ml_sampler(outdir, theory, priors, data, cov, init, pool, nwalkers, gpunode,
     params["batch_size"] = 500
     return ml_sampler_core(ntrainArr, nvalArr, nkeepArr, ntimesArr, ntautolArr, meanshiftArr, stdshiftArr, outdir, theory, priors, data, cov,  init, pool, nwalkers, device, dolog10index, ypositive, temperatureArr, omegab2cut, docuda, tsize, gpunode, nnmodel_in, params, method, nbest=nbest, chisqcut=chisqcut, loglikelihoodfunc=loglikelihoodfunc) 
 
-def ml_sampler_core(ntrainArr, nvalArr, nkeepArr, ntimesArr, ntautolArr, meanshiftArr, stdshiftArr, outdir, theory, priors, data, cov,  init, pool, nwalkers, device, dolog10index, ypositive, temperatureArr, omegab2cut=None, docuda=False, tsize=1, gpunode=None, nnmodel_in=None, params=None, method="emcee", nbest=None, chisqcut=None, loglikelihoodfunc=None, nsigma=3):
+def ml_sampler_core(ntrainArr, nvalArr, nkeepArr, ntimesArr, ntautolArr, meanshiftArr, stdshiftArr, outdir, theory, priors, data, cov,  init, pool, nwalkers, device, dolog10index, ypositive, temperatureArr, omegab2cut=None, docuda=False, tsize=1, gpunode=None, nnmodel_in=None, params=None, method="emcee", nbest=None, chisqcut=None, loglikelihoodfunc=None, nsigma=3, externalloglike=None):
     """
     LINNA main function 
 
@@ -109,6 +109,7 @@ def ml_sampler_core(ntrainArr, nvalArr, nkeepArr, ntimesArr, ntautolArr, meanshi
         chisqcut (float, optional): cut the training data if there chisq is greater than this value 
         loglikelihoodfunc (callable): function of model, data , inverse of covariance matrix and return the log liklihood value 
         nsigma (float): the training point in the first iteration will be generated within nsigma of the gaussian prior 
+        externalloglike (callable): additional log likelihood, function of parameters 
     Returns:
         nd array: MCMC chain 
         1d array: log probability of MCMC chain
@@ -196,7 +197,10 @@ def ml_sampler_core(ntrainArr, nvalArr, nkeepArr, ntimesArr, ntautolArr, meanshi
             pickle.dump([nnsampler, cov, inv_cov, sigma, outdir_in, outdir_list, data, dolog10index, ypositive, False, 2, temperature, docuda, None, 1, nnmodel_in, params, nbest_in is not None], f) 
             f.close()
             if not os.path.isfile(outdir_list[-1] + "/finish.pkl"): 
-                if gpunode == 'automaticgpu':
+                if (gpunode != None)&(gpunode != 'automaticgpu'):
+                    gpunode, gpujobid = gpunode.split("_")
+                else:
+                    #if gpunode == 'automaticgpu':
                     while(True):
                         gpufile = os.path.join(outdir, "gpunodeinfo.pkl")
                         try:
@@ -204,15 +208,43 @@ def ml_sampler_core(ntrainArr, nvalArr, nkeepArr, ntimesArr, ntautolArr, meanshi
                                 with open(gpufile, 'rb') as f:
                                     gpuinfo = pickle.load(f)
                                 gpunode = gpuinfo["nodename"]
+                                gpujobid = gpuinfo['jobid']
                                 break 
                         except:
                             pass
+                #gpujobid="32030197"
                 if gpunode is not None:
                     print("running gpu on {0}".format(gpunode), flush=True)
-                    os.system("cat {2}/train_gpu.py | ssh {0} python - {1} {3}".format(gpunode, outdir_list[-1], os.path.dirname(os.path.abspath(__file__)), "cuda"))
+                    os.system("unset SLURM_CPU_BIND_LIST")
+                    os.system("unset SLURM_CPU_BIND_TYPE")
+                    os.system("unset SLURM_CPU_BIND")
+                    os.system("unset SLURM_MEM_PER_NODE")
+                    #os.system("cat {2}/train_gpu.py |  srun -N 1 -n 1 --gres-flags=enforce-binding --mem=8GB --jobid {4} --nodelist={0} --overlap python - {1} {3}".format(gpunode, outdir_list[-1], os.path.dirname(os.path.abspath(__file__)), "cuda", gpujobid))
+                    #while(1):
+                    # datatrove fails to start slurm jobs from an interactive slurm job,
+                    # so hack to pretend we aren't inside an interactive slurm job by removing SLURM env vars
+                    keysaved = []
+                    keyvaluesaved = []
+                    for key in os.environ.keys():
+                        if key.startswith("SLURM_"):
+                            keysaved.append(key)
+                            keyvaluesaved.append(os.environ[key])
+                            os.environ.pop(key)
+                    if os.system("srun -N 1 -n 1 --mem=8GB --nodelist={0} --jobid {4} --overlap python {2}/train_gpu.py {1} {3}".format(gpunode, outdir_list[-1], os.path.dirname(os.path.abspath(__file__)), "cuda", gpujobid))!=0:
+                        raise Exception('Problem with gpu ssh')
+                    #os.system("ssh {0} \"python {2}/train_gpu.py {1} {3}\"".format(gpunode, outdir_list[-1], os.path.dirname(os.path.abspath(__file__)), "cuda", gpujobid))
+                    for key, keyvalue in zip(keysaved, keyvaluesaved):
+                        os.environ[key] = keyvalue
+                    print("#"*100, flush=True)
+                    print(keysaved, flush=True)
+                    print("#"*100, flush=True)
+                    print(os.environ, flush=True)
+                    print("#"*100, flush=True)
                     while(1):
                         if  os.path.isfile(outdir_list[-1] + "/finish.pkl"):
                             break
+                    gnode=None
+                    gpunode = "{0}_{1}".format(gpunode, gpujobid) 
                 else:
                     os.system("python {1}/train_gpu.py {0} {2}".format(outdir_list[-1], os.path.dirname(os.path.abspath(__file__)), "nocuda"))
                     while(1):
@@ -220,10 +252,23 @@ def ml_sampler_core(ntrainArr, nvalArr, nkeepArr, ntimesArr, ntautolArr, meanshi
                             break
 
         #Retrieve model  
-        model, y_invtransform_data = retrieve_model(outdir_in, len(init), len(data), nnmodel_in)
+        try:
+            model, y_invtransform_data = retrieve_model(outdir_in, len(init), len(data), nnmodel_in)
+            incut, outcut = None, None
+        except:
+            model, y_invtransform_data, incut, outcut = retrieve_model_exist(outdir_in, len(init), len(data), nnmodel_in)
+            priors_new = deepcopy(priors)
+            for i in range(incut-len(init)):
+                priors_new.append({'dist': 'flat', 'arg1': -1, 'arg2': 1})
+            transform = Transform(priors_new)
+
+
         if not docuda:
             model.model = model.model.to(memory_format=torch.channels_last)
             model.MKLDNN=True
+
+
+
         #Do MCMC
         if os.path.isfile(os.path.join(outdir_in, filename)):
             continue
@@ -231,7 +276,7 @@ def ml_sampler_core(ntrainArr, nvalArr, nkeepArr, ntimesArr, ntautolArr, meanshi
         data_new = torch.from_numpy(data.astype(np.float32)).to('cpu').detach().clone().requires_grad_()
         if loglikelihoodfunc is None:
             loglikelihoodfunc = gaussianlogliklihood
-        log_prob = Log_prob(data_new, invcov_new, model, y_invtransform_data, transform, temperature, nograd=True, loglikelihoodfunc=loglikelihoodfunc) 
+        log_prob = Log_prob(data_new, invcov_new, model, y_invtransform_data, transform, temperature, nograd=True, loglikelihoodfunc=loglikelihoodfunc, externalloglike=externalloglike) 
         dlnp = None
         ddlnp = None
         if pool is not None:
@@ -260,6 +305,9 @@ def ml_sampler_core(ntrainArr, nvalArr, nkeepArr, ntimesArr, ntautolArr, meanshi
                 chain_name = chain_name+".txt"
                 chain = np.loadtxt(chain_name)[-100000:,:-1]
                 log_prob_samples_x = np.loadtxt(chain_name)[-100000:,-1]
+            chain = chain[:]
+            log_prob_samples_x = log_prob_samples_x[:]
+            print(chain.shape, log_prob_samples_x.shape)
             select = np.random.randint(0, len(chain), params['nimp'])
             chain = chain[select]
             log_prob_samples_x = log_prob_samples_x[select]

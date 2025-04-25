@@ -1,0 +1,243 @@
+!_TAG_FILE_FORMAT	2	/extended format; --format=1 will not append ;" to lines/
+!_TAG_FILE_SORTED	1	/0=unsorted, 1=sorted, 2=foldcase/
+!_TAG_PROGRAM_AUTHOR	Darren Hiebert	/dhiebert@users.sourceforge.net/
+!_TAG_PROGRAM_NAME	Exuberant Ctags	//
+!_TAG_PROGRAM_URL	http://ctags.sourceforge.net	/official site/
+!_TAG_PROGRAM_VERSION	5.8	//
+ArrayDataset	util.py	/^class ArrayDataset(Dataset):$/;"	c
+Auxilleryfunc	util.py	/^class Auxilleryfunc:$/;"	c
+CPU_Unpickler	util.py	/^class CPU_Unpickler(pickle.Unpickler):$/;"	c
+ChtoModelv2	nn.py	/^class ChtoModelv2(nn.Module):$/;"	c
+ChtoModelv2_linear	nn.py	/^class ChtoModelv2_linear(nn.Module):$/;"	c
+CombineFunc	sampler.py	/^class CombineFunc:$/;"	c
+Ddlnp	util.py	/^class Ddlnp:$/;"	c
+Dlnp	util.py	/^class Dlnp:$/;"	c
+EarlyStopping	predictor_gpu.py	/^class EarlyStopping(object):$/;"	c
+Functransform	sampler.py	/^class Functransform:$/;"	c
+HMCSampler	HMCSampler.py	/^class HMCSampler:$/;"	c
+HMCSampler	sampler.py	/^class HMCSampler:$/;"	c
+HamiltonianMove	sampler.py	/^class HamiltonianMove(emcee.moves.Move):$/;"	c
+LinearModel	nn.py	/^class LinearModel:$/;"	c
+LogPrior	util.py	/^class LogPrior:$/;"	c
+Log_prob	util.py	/^class Log_prob:$/;"	c
+Loss_fn	util.py	/^class Loss_fn:$/;"	c
+Model_func	cosmolike_run.py	/^class Model_func:$/;"	c
+NN_samplerv1	util.py	/^class NN_samplerv1:$/;"	c
+NUTSMove	sampler.py	/^class NUTSMove(emcee.moves.Move):$/;"	c
+Nuts_one_worker	sampler.py	/^class Nuts_one_worker(object):$/;"	c
+Params	nnutils.py	/^class Params():$/;"	c
+Predictor	predictor_gpu.py	/^class Predictor:$/;"	c
+ResBlock_batchnorm	nn.py	/^class ResBlock_batchnorm(nn.Module):$/;"	c
+RunningAverage	nnutils.py	/^class RunningAverage():$/;"	c
+Transform	util.py	/^class Transform:$/;"	c
+Transformbackend	sampler.py	/^class Transformbackend(emcee.backends.HDFBackend):$/;"	c
+Val_metric_fn	util.py	/^class Val_metric_fn:$/;"	c
+XT1	util.py	/^        def XT1(X):$/;"	f	function:train_NN
+X_transform_class	util.py	/^class X_transform_class:$/;"	c
+Y_invtransform_class	util.py	/^class Y_invtransform_class:$/;"	c
+Y_invtransform_data	util.py	/^class Y_invtransform_data:$/;"	c
+Y_transform_class	util.py	/^class Y_transform_class:$/;"	c
+Y_transform_data	util.py	/^class Y_transform_data:$/;"	c
+ZeusSampler	sampler.py	/^class ZeusSampler:$/;"	c
+ZeusTransformCallback	sampler.py	/^class ZeusTransformCallback(zeus.callbacks.SaveProgressCallback):$/;"	c
+Zeus_sample	util.py	/^    def Zeus_sample(self, log_prob, ndim, nwalkers, init, pool, transform, ntimes=50, tautol=0.01, dlnp=None, ddlnp=None, meanshift=0.1, stdshift=0.1, nk=1):$/;"	m	class:NN_samplerv1
+Zeusbackend	sampler.py	/^class Zeusbackend:$/;"	c
+ZeusconvergenceCallback	sampler.py	/^class ZeusconvergenceCallback:$/;"	c
+_FunctionWrapper	util.py	/^class _FunctionWrapper(object):$/;"	c
+_HMC_sample	util.py	/^    def _HMC_sample(self, log_prob, dlnp, ddlnp, ndim, nwalkers, init, pool, transform, samp_steps, samp_eps):$/;"	m	class:NN_samplerv1
+_NUTS_sample	util.py	/^    def _NUTS_sample(self, log_prob, dlnp, ddlnp, ndim, nwalkers, init, pool, transform,  Madapt):$/;"	m	class:NN_samplerv1
+__author__	__init__.py	/^__author__ = 'Chun-Hao To'$/;"	v
+__call__	cosmolike_run.py	/^    def __call__(self, x, outdirs):$/;"	m	class:Model_func	file:
+__call__	nn.py	/^    def __call__(self, X):$/;"	m	class:pytorchPolynomialLinear	file:
+__call__	nn.py	/^    def __call__(self,x):$/;"	m	class:LinearModel	file:
+__call__	nnutils.py	/^    def __call__(self):$/;"	m	class:RunningAverage	file:
+__call__	sampler.py	/^    def __call__(self, args):$/;"	m	class:_hmc_wrapper	file:
+__call__	sampler.py	/^    def __call__(self, i, x, y):$/;"	m	class:ZeusTransformCallback	file:
+__call__	sampler.py	/^    def __call__(self, i, x, y):$/;"	m	class:ZeusconvergenceCallback	file:
+__call__	sampler.py	/^    def __call__(self, n):$/;"	m	class:Nuts_one_worker	file:
+__call__	sampler.py	/^    def __call__(self, x, *args, **kwargs):$/;"	m	class:CombineFunc	file:
+__call__	sampler.py	/^    def __call__(self, x, *args, **kwargs):$/;"	m	class:Functransform	file:
+__call__	util.py	/^    def __call__(self, X):$/;"	m	class:X_transform_class	file:
+__call__	util.py	/^    def __call__(self, x):$/;"	m	class:Ddlnp	file:
+__call__	util.py	/^    def __call__(self, x):$/;"	m	class:_FunctionWrapper	file:
+__call__	util.py	/^    def __call__(self, x, lnP=None, returntorch=None, inputnumpy=None):$/;"	m	class:Dlnp	file:
+__call__	util.py	/^    def __call__(self, x, returnnumpy=True, inputnumpy=True):$/;"	m	class:Transform	file:
+__call__	util.py	/^    def __call__(self, x, returnnumpy=True, inputnumpy=True):$/;"	m	class:invTransform	file:
+__call__	util.py	/^    def __call__(self, x, returntorch=True, inputnumpy=True):$/;"	m	class:Log_prob	file:
+__call__	util.py	/^    def __call__(self, xlist):$/;"	m	class:LogPrior	file:
+__call__	util.py	/^    def __call__(self, y):$/;"	m	class:Y_invtransform_class	file:
+__call__	util.py	/^    def __call__(self, y):$/;"	m	class:Y_invtransform_data	file:
+__call__	util.py	/^    def __call__(self, y):$/;"	m	class:Y_transform_class	file:
+__call__	util.py	/^    def __call__(self, y):$/;"	m	class:Y_transform_data	file:
+__call__	util.py	/^    def __call__(self, y_pred, y_target):$/;"	m	class:Auxilleryfunc	file:
+__call__	util.py	/^    def __call__(self, y_pred, y_target):$/;"	m	class:Loss_fn	file:
+__call__	util.py	/^    def __call__(self, y_pred,y_target):$/;"	m	class:Val_metric_fn	file:
+__credits__	__init__.py	/^__credits__ = 'Stanford, OSU'$/;"	v
+__email__	__init__.py	/^__email__ = 'chunhaoto@gmail.com'$/;"	v
+__getitem__	util.py	/^    def __getitem__(self, i):$/;"	m	class:ArrayDataset	file:
+__init__	HMCSampler.py	/^    def __init__(self, lnP, x0, m, transform=None, device='cpu'):$/;"	m	class:HMCSampler
+__init__	cosmolike_run.py	/^    def __init__(self, datavector_writer, mask):$/;"	m	class:Model_func
+__init__	nn.py	/^    def __init__(self, in_size, channel, out_size):$/;"	m	class:ResBlock_batchnorm
+__init__	nn.py	/^    def __init__(self, in_size, out_size, linearmodel, docpu=False): $/;"	m	class:ChtoModelv2
+__init__	nn.py	/^    def __init__(self, in_size, out_size, linearmodel, docpu=False): $/;"	m	class:ChtoModelv2_linear
+__init__	nn.py	/^    def __init__(self, ndegree):$/;"	m	class:pytorchPolynomialLinear
+__init__	nn.py	/^    def __init__(self, norder, npc, x_transform=None, y_transform=None, y_inverse_transform_data=None):$/;"	m	class:LinearModel
+__init__	nnutils.py	/^    def __init__(self):$/;"	m	class:RunningAverage
+__init__	nnutils.py	/^    def __init__(self, json_path):$/;"	m	class:Params
+__init__	predictor_gpu.py	/^    def __init__(self, in_size=None, out_size=None, model=None, optim=None, X_transform=None,$/;"	m	class:Predictor
+__init__	predictor_gpu.py	/^    def __init__(self, mode='min', min_delta=0, patience=10, nqueue=200,  percentage=False):$/;"	m	class:EarlyStopping
+__init__	sampler.py	/^    def __init__(self, chainname):$/;"	m	class:Zeusbackend
+__init__	sampler.py	/^    def __init__(self, compute_derivative, nsteps, epsilon, cov):$/;"	m	class:HamiltonianMove
+__init__	sampler.py	/^    def __init__(self, f1, f2):$/;"	m	class:CombineFunc
+__init__	sampler.py	/^    def __init__(self, filename, ncheck, transform):$/;"	m	class:ZeusTransformCallback
+__init__	sampler.py	/^    def __init__(self, lnp, compute_derivative, cov, Madapt, x0, nwalkers, delta=0.6, maxheight=np.inf, torchspeed=True):$/;"	m	class:NUTSMove
+__init__	sampler.py	/^    def __init__(self, lnp, dlnp, ddlnp, ndim, nwalkers,  x0=None, m=None, transform=None, torchspeed=False):$/;"	m	class:HMCSampler
+__init__	sampler.py	/^    def __init__(self, lnp, ndim, nwalkers,  x0=None, transform=None):$/;"	m	class:ZeusSampler
+__init__	sampler.py	/^    def __init__(self, ncheck=100, dact=0.01, nact=10, discard=0.5, trigger=True, method='mk', meanshift=0.1, stdshift=0.1, nk=2):$/;"	m	class:ZeusconvergenceCallback
+__init__	sampler.py	/^    def __init__(self, random, model_derive, cov, epsilon, nsteps=None):$/;"	m	class:_hmc_wrapper
+__init__	sampler.py	/^    def __init__(self, state, r0s, coords, dlnp, epsilon, random, cov,  maxheight, log_prob_fn, torchspeed):$/;"	m	class:Nuts_one_worker
+__init__	sampler.py	/^    def __init__(self, var):$/;"	m	class:_hmc_matrix
+__init__	sampler.py	/^    def __init__(self, xmap, u, func, derive=0, torchspeed=False):$/;"	m	class:Functransform
+__init__	sampler.py	/^    def __init__(self,$/;"	m	class:Transformbackend
+__init__	util.py	/^        def __init__(self, comm=None):$/;"	m	class:_dummy_callback.chtoPool
+__init__	util.py	/^    def __init__(self, X, y):$/;"	m	class:ArrayDataset
+__init__	util.py	/^    def __init__(self, X_mean, X_std, device, dolog10index=None):$/;"	m	class:X_transform_class
+__init__	util.py	/^    def __init__(self, data_in, cov_tensor, inv_cov_tensor, y_transform_data, y_inv_transform, device):$/;"	m	class:Auxilleryfunc
+__init__	util.py	/^    def __init__(self, data_in, cov_tensor, inv_cov_tensor, y_transform_data, y_inv_transform, device):$/;"	m	class:Loss_fn
+__init__	util.py	/^    def __init__(self, data_in, cov_tensor, inv_cov_tensor, y_transform_data, y_inv_transform, device):$/;"	m	class:Val_metric_fn
+__init__	util.py	/^    def __init__(self, data_new, invcov_new, model, y_invtransform_data, transform, temperature):$/;"	m	class:Ddlnp
+__init__	util.py	/^    def __init__(self, data_new, invcov_new, model, y_invtransform_data, transform, temperature):$/;"	m	class:Dlnp
+__init__	util.py	/^    def __init__(self, data_new, invcov_new, model, y_invtransform_data, transform, temperature, loglikelihoodfunc, nograd=False):$/;"	m	class:Log_prob
+__init__	util.py	/^    def __init__(self, f, args, kwargs):$/;"	m	class:_FunctionWrapper
+__init__	util.py	/^    def __init__(self, nwalker):$/;"	m	class:chtoMultiprocessPool
+__init__	util.py	/^    def __init__(self, outdir, prior_range):$/;"	m	class:NN_samplerv1
+__init__	util.py	/^    def __init__(self, prior):$/;"	m	class:LogPrior
+__init__	util.py	/^    def __init__(self, priors):$/;"	m	class:Transform
+__init__	util.py	/^    def __init__(self, priors):$/;"	m	class:invTransform
+__init__	util.py	/^    def __init__(self, sigma, device):$/;"	m	class:Y_invtransform_data
+__init__	util.py	/^    def __init__(self, sigma, device):$/;"	m	class:Y_transform_data
+__init__	util.py	/^    def __init__(self, y_mean, y_std, data_tensor, dev, ypositive=False):$/;"	m	class:Y_invtransform_class
+__init__	util.py	/^    def __init__(self, y_mean, y_std, dev, ypositive=False):$/;"	m	class:Y_transform_class
+__initialize_and_save	sampler.py	/^    def __initialize_and_save(self, x, y):$/;"	m	class:ZeusTransformCallback	file:
+__len__	util.py	/^    def __len__(self):$/;"	m	class:ArrayDataset	file:
+__save	sampler.py	/^    def __save(self, x, y):$/;"	m	class:ZeusTransformCallback	file:
+__version__	__init__.py	/^__version__ = '0.0.1'$/;"	v
+_dummy_callback	util.py	/^def _dummy_callback(x):$/;"	f
+_hmc_matrix	sampler.py	/^class _hmc_matrix(object):$/;"	c
+_hmc_wrapper	sampler.py	/^class _hmc_wrapper(object):$/;"	c
+_init_is_better	predictor_gpu.py	/^    def _init_is_better(self, mode, min_delta, percentage):$/;"	m	class:EarlyStopping
+apply	sampler.py	/^    def apply(self, x):$/;"	m	class:_hmc_matrix
+args	train_gpu.py	/^    args = pickle.load(f) $/;"	v
+bcast	util.py	/^        def bcast(self, worker, args, sizemax):$/;"	m	class:_dummy_callback.chtoPool
+build_tree	sampler.py	/^def build_tree(theta, r, grad, v, j, epsilon, f, joint0, cov):$/;"	f
+calc_hess_mass_mat	sampler.py	/^    def calc_hess_mass_mat(self, maxiter=1E5, gtol=1E-5,resamp_x0=True, tensor=True):$/;"	m	class:HMCSampler
+checkmeanstd	sampler.py	/^def checkmeanstd(samples, meanshift, stdshift):$/;"	f
+chisqcut_all	util.py	/^def chisqcut_all(data, invcov, chisqcut, fnamey, fnamex):$/;"	f
+chtoMultiprocessPool	util.py	/^class chtoMultiprocessPool:$/;"	c
+chtoPool	util.py	/^    class chtoPool(MPIPool):$/;"	c	function:_dummy_callback
+comm	cosmolike_run.py	/^comm = MPI.COMM_WORLD$/;"	v
+comm	util.py	/^    comm = MPI.COMM_WORLD$/;"	v
+dict	nnutils.py	/^    def dict(self):$/;"	m	class:Params
+emcee_sample	util.py	/^    def emcee_sample(self, log_prob, ndim, nwalkers, init, pool, transform, ntimes=50, tautol=0.01, dlnp=None, ddlnp=None, meanshift=0.1, stdshift=0.1, nk=1):$/;"	m	class:NN_samplerv1
+f	sampler.py	/^    def f(self, x):$/;"	m	class:Nuts_one_worker
+f	train_gpu.py	/^    f = open(outdir+"\/finish.pkl", 'wb')$/;"	v
+f	train_gpu.py	/^    f = open(outdir+"\/model_args.pkl", 'rb')$/;"	v
+f	train_gpu.py	/^    f = open(outdir+"\/model_pickle.pkl", 'rb')$/;"	v
+find_class	util.py	/^    def find_class(self, module, name):$/;"	m	class:CPU_Unpickler
+find_reasonable_epsilon	sampler.py	/^def find_reasonable_epsilon(theta0, grad0, logp0, f, cov):$/;"	f
+fit	nn.py	/^    def fit(self, train_x, train_y, sample_weight=None):$/;"	m	class:pytorchPolynomialLinear
+forward	nn.py	/^    def forward(self, s):$/;"	m	class:ChtoModelv2
+forward	nn.py	/^    def forward(self, s):$/;"	m	class:ChtoModelv2_linear
+forward	nn.py	/^    def forward(self, x):$/;"	m	class:ResBlock_batchnorm
+gauss2unif	util.py	/^def gauss2unif(x):$/;"	f
+gaussianlogliklihood	util.py	/^def gaussianlogliklihood( m, data, invcov):$/;"	f
+gen_plot	nnutils.py	/^def gen_plot(plotarr, shape):$/;"	f
+generate_training_data	util.py	/^    def generate_training_data(self, samples, model, pool=None, args=None, kwargs=None):$/;"	m	class:NN_samplerv1
+generate_training_point	util.py	/^def generate_training_point(theory, nnsampler, pool, outdir, ntrain, nval, data, invcov, chain=None, nsigma=1, omegab2cut=None, options=0, negloglike=None, nbest_in=None, chisqcut=None):$/;"	f
+gensample_chain	util.py	/^    def gensample_chain(self, Nsamples, chain_in, nsigma, omegab2cut=None):$/;"	m	class:NN_samplerv1
+gensample_chain_randomsample	util.py	/^    def gensample_chain_randomsample(self, Nsamples, chain_in, nsigma, omegab2cut=None):$/;"	m	class:NN_samplerv1
+gensample_flat	util.py	/^    def gensample_flat(self, Nsamples, omegab2cut=None):$/;"	m	class:NN_samplerv1
+get_args	sampler.py	/^    def get_args(self, ensemble):$/;"	m	class:HamiltonianMove
+get_autocorr_time	sampler.py	/^    def get_autocorr_time(self, discard=0, thin=1, **kwargs):$/;"	m	class:Zeusbackend
+get_good_walker_list	util.py	/^def get_good_walker_list(log_prob_samples):$/;"	f
+get_last_sample	sampler.py	/^    def get_last_sample(self):$/;"	m	class:ZeusTransformCallback
+get_log_prob	sampler.py	/^    def get_log_prob(self, **kwargs):$/;"	m	class:Zeusbackend
+get_prior_dic_init	cosmolike_run.py	/^def get_prior_dic_init(param):$/;"	f
+get_value	sampler.py	/^    def get_value(self, name, flat=False, thin=1, discard=0):$/;"	m	class:Zeusbackend
+grow	sampler.py	/^    def grow(self, ngrow, blobs):$/;"	m	class:Transformbackend
+info	gpuscript.py	/^info = {'jobid': jobid, "nodename": nodename}$/;"	v
+init_weight	nn.py	/^    def init_weight(self):$/;"	m	class:ChtoModelv2
+init_weight	nn.py	/^    def init_weight(self):$/;"	m	class:ChtoModelv2_linear
+init_weight	nn.py	/^    def init_weight(self):$/;"	m	class:ResBlock_batchnorm
+invTransform	util.py	/^class invTransform:$/;"	c
+invgauss2unif	util.py	/^def invgauss2unif(x):$/;"	f
+is_master	util.py	/^    def is_master(self):$/;"	m	class:chtoMultiprocessPool
+istrained	nn.py	/^    def istrained(self):$/;"	m	class:LinearModel
+jobid	gpuscript.py	/^jobid = os.getenv('SLURM_JOB_ID')$/;"	v
+leapfrog	sampler.py	/^def leapfrog(theta, r, grad, epsilon, f, cov=None):$/;"	f
+lnprior	util.py	/^def lnprior(x):$/;"	f
+load_checkpoint	nnutils.py	/^def load_checkpoint(checkpoint, model, optimizer=None, device=None, ismpi=False):$/;"	f
+load_checkpoint	predictor_gpu.py	/^    def load_checkpoint(self, ismpi=False):$/;"	m	class:Predictor
+logp_theory_data	util.py	/^def logp_theory_data(samples, theory, data, invcov, logprior):$/;"	f
+main	cosmolike_run.py	/^def main():$/;"	f
+makepositivedefinite	util.py	/^def makepositivedefinite(cov, fcut=0.99):$/;"	f
+map	util.py	/^        def map(self, worker, tasks, callback=None):$/;"	m	class:_dummy_callback.chtoPool
+map	util.py	/^    def map(self, worker, tasks, callback=None):$/;"	m	class:chtoMultiprocessPool
+median_absolute_deviation	util.py	/^def median_absolute_deviation(y, median, dim):$/;"	f
+ml_sampler	main.py	/^def ml_sampler(outdir, theory, priors, data, cov, init, pool, nwalkers, gpunode, omegab2cut=None, nepoch=4500, method="zeus", nbest=None, chisqcut=None, loglikelihoodfunc=None):$/;"	f
+ml_sampler_core	main.py	/^def ml_sampler_core(ntrainArr, nvalArr, nkeepArr, ntimesArr, ntautolArr, meanshiftArr, stdshiftArr, outdir, theory, priors, data, cov,  init, pool, nwalkers, device, dolog10index, ypositive, temperatureArr, omegab2cut=None, docuda=False, tsize=1, gpunode=None, nnmodel_in=None, params=None, method="emcee", nbest=None, chisqcut=None, loglikelihoodfunc=None, nsigma=3):$/;"	f
+model	train_gpu.py	/^    model = pickle.load(f) $/;"	v
+negloglike	main.py	/^            def negloglike(x):$/;"	f	function:ml_sampler_core
+nodename	gpuscript.py	/^nodename = os.getenv('SLURMD_NODENAME')$/;"	v
+noduplicate_close	util.py	/^        def noduplicate_close(self):$/;"	m	class:_dummy_callback.chtoPool
+noduplicate_close	util.py	/^    def noduplicate_close(self):$/;"	m	class:chtoMultiprocessPool
+nompi	util.py	/^    nompi=False$/;"	v
+nompi	util.py	/^    nompi=True$/;"	v
+outdir	gpuscript.py	/^outdir = sys.argv[1]$/;"	v
+outdir	train_gpu.py	/^    outdir = sys.argv[1]$/;"	v
+outfile	gpuscript.py	/^outfile = os.path.join(outdir, "gpunodeinfo.pkl")$/;"	v
+path	cosmolike_run.py	/^path = "\/home\/users\/chto\/code\/lighthouse\/analysis\/"$/;"	v
+pickle	util.py	/^    def pickle(self, path):$/;"	m	class:X_transform_class
+pickle	util.py	/^    def pickle(self, path):$/;"	m	class:Y_invtransform_class
+pickle	util.py	/^    def pickle(self, path):$/;"	m	class:Y_invtransform_data
+pickle	util.py	/^    def pickle(self, path):$/;"	m	class:Y_transform_class
+pickle	util.py	/^    def pickle(self, path):$/;"	m	class:Y_transform_data
+predict	nn.py	/^    def predict(self,x):$/;"	m	class:LinearModel
+predict	predictor_gpu.py	/^    def predict(self, X, no_grad=True):$/;"	m	class:Predictor
+propose	sampler.py	/^    def propose(self, model, state):$/;"	m	class:HamiltonianMove
+propose	sampler.py	/^    def propose(self, model, state):$/;"	m	class:NUTSMove
+pytorchPolynomialLinear	nn.py	/^class pytorchPolynomialLinear:$/;"	c
+rank	cosmolike_run.py	/^rank = comm.Get_rank()$/;"	v
+read_chain_and_cut	util.py	/^def read_chain_and_cut(chainname, nk, ntimes=20, walkercut=False, method="emcee", flat=False):$/;"	f
+readcov	cosmolike_run.py	/^    def readcov(covin):$/;"	f	function:main
+reset	sampler.py	/^    def reset(self,nwalkers, ndim):$/;"	m	class:Transformbackend
+retrieve_model	util.py	/^def retrieve_model(outdir, inshape, outshape, nnmodel_in=ChtoModelv2):$/;"	f
+retrieve_model_wrapper_in	util.py	/^def retrieve_model_wrapper_in(outdir, nnmodel_in=ChtoModelv2, no_grad=True):$/;"	f
+run_mcmc	util.py	/^def run_mcmc(nnsampler, outdir, method, ndim, nwalkers, init, log_prob, dlnp=None, ddlnp=None, pool=None, transform=None, ntimes=50, tautol=0.01, meanshift=0.1, stdshift=0.1, nk=2):$/;"	f
+sample	HMCSampler.py	/^    def sample(self, num_samps, num_steps, step_size):$/;"	m	class:HMCSampler
+sample	sampler.py	/^    def sample(self, pool, nsamp, outdir=".\/", progress=False, overwrite=False, ntimes=10, tautol=0.01, incremental=True, meanshift=0.1, stdshift=0.1, nk=2):$/;"	m	class:ZeusSampler
+sample	sampler.py	/^    def sample(self, pool, nsamp, samp_steps, samp_eps, Madapt=1000, outdir=".\/", progress=False, overwrite=False, ntimes=10, tautol=0.01, method="hmc", incremental=True, meanshift=0.1, stdshift=0.1, nk=2):$/;"	m	class:HMCSampler
+sample	sampler.py	/^    def sample(self, random, *shape):$/;"	m	class:_hmc_matrix
+save	nn.py	/^    def save(self, outname):$/;"	m	class:LinearModel
+save	nnutils.py	/^    def save(self, json_path):$/;"	m	class:Params
+save_checkpoint	nnutils.py	/^def save_checkpoint(state, is_best, checkpoint):$/;"	f
+save_dict_to_json	nnutils.py	/^def save_dict_to_json(d, json_path):$/;"	f
+save_step	sampler.py	/^    def save_step(self, state, accepted):$/;"	m	class:Transformbackend
+set_logger	nnutils.py	/^def set_logger(log_path):$/;"	f
+size	cosmolike_run.py	/^size = comm.Get_size()$/;"	v
+step	predictor_gpu.py	/^    def step(self, metrics, metrics_t):$/;"	m	class:EarlyStopping
+stop_criterion	sampler.py	/^def stop_criterion(thetaminus, thetaplus, rminus, rplus, cov=None):$/;"	f
+submitgpujob	cosmolike_run.py	/^def submitgpujob(allargs):$/;"	f
+timein	gpuscript.py	/^timein = sys.argv[2]$/;"	v
+timesleep	gpuscript.py	/^timesleep = eval(timesleep[0])*3600+eval(timesleep[1])*60+eval(timesleep[2])$/;"	v
+timesleep	gpuscript.py	/^timesleep = timein.split(":")$/;"	v
+train	nn.py	/^    def train(self, train_x, train_y, sample_weight=None):$/;"	m	class:LinearModel
+train	predictor_gpu.py	/^    def train(self, dataset, num_epochs, loss_fn, val_dataset=None, val_metric_fn=None, initfrombest=False, pool=None, nocpu=False, rank=0, size=1):$/;"	m	class:Predictor
+train_NN	util.py	/^def train_NN( nnsampler, cov, inv_cov, sigma, outdir_in, outdir_list,data, dolog10index=None, ypositive=False, retrain=True, norder=2, temperature=None, docuda=False, pool=None, tsize=1, nnmodel_in=None, params=None, usebest=False):$/;"	f
+train_nn	util.py	/^def train_nn(outdir, model, train_x, train_y, val_x, val_y, X_transform, y_transform, loss_fn, val_metric_fn,dev = "cpu", verbose=False, retrain=True, pool=None, nocpu=False, size=0, rank=0, params=None):$/;"	f
+trainsform	nn.py	/^    def trainsform(self, tensor):$/;"	m	class:pytorchPolynomialLinear
+transform_cov	util.py	/^    def transform_cov(self, cov):$/;"	m	class:Y_invtransform_class
+transform_cov	util.py	/^    def transform_cov(self, cov):$/;"	m	class:Y_transform_data
+update	nnutils.py	/^    def update(self, json_path):$/;"	m	class:Params
+update	nnutils.py	/^    def update(self, val):$/;"	m	class:RunningAverage
+wait	util.py	/^        def wait(self):$/;"	m	class:_dummy_callback.chtoPool
