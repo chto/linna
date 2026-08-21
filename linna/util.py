@@ -804,10 +804,15 @@ class NN_samplerv1:
             if omegab2cut is not None:
                 ombh2 = samples[:,omegab2cut[0]]*samples[:, omegab2cut[1]]**2
                 keep = (ombh2>omegab2cut[2])&(ombh2<omegab2cut[3])
-                if len(omegab2cut)>4:
+                if len(omegab2cut)==7:
                     keep = keep&(samples[:,omegab2cut[4]]>omegab2cut[5])&(samples[:,omegab2cut[4]]<omegab2cut[6])
-                if len(omegab2cut)>6:
-                    keep = keep&(samples[:,omegab2cut[7]]>omegab2cut[8])&(samples[:,omegab2cut[7]]<omegab2cut[9])
+                if len(omegab2cut)==10:
+                    keep = keep&(samples[:,omegab2cut[7]]>omegab2cut[8])&(samples[:,omegab2cut[7]]<omegab2cut[9])&(samples[:,omegab2cut[4]]>omegab2cut[5])&(samples[:,omegab2cut[4]]<omegab2cut[6])
+                if len(omegab2cut)==6:
+                    #w0wa cut 
+                    w0 = samples[:,omegab2cut[4]]
+                    wa = samples[:,omegab2cut[5]]
+                    keep = keep&(w0+wa<0)
                 samples=samples[keep]
 
             Nsample_in+=1000
@@ -846,10 +851,17 @@ class NN_samplerv1:
                 ombh2 = x[:,omegab2cut[0]]*x[:, omegab2cut[1]]**2
                 keep = (ombh2>omegab2cut[2])&(ombh2<omegab2cut[3])
                 samples = x
-                if len(omegab2cut)>4:
+
+                if len(omegab2cut)==7:
                     keep = keep&(samples[:,omegab2cut[4]]>omegab2cut[5])&(samples[:,omegab2cut[4]]<omegab2cut[6])
-                if len(omegab2cut)>6:
-                    keep = keep&(samples[:,omegab2cut[7]]>omegab2cut[8])&(samples[:,omegab2cut[7]]<omegab2cut[9])
+                if len(omegab2cut)==10:
+                    keep = keep&(samples[:,omegab2cut[7]]>omegab2cut[8])&(samples[:,omegab2cut[7]]<omegab2cut[9])&(samples[:,omegab2cut[4]]>omegab2cut[5])&(samples[:,omegab2cut[4]]<omegab2cut[6])
+                if len(omegab2cut)==6:
+                    #w0wa cut 
+                    w0 = samples[:,omegab2cut[4]]
+                    wa = samples[:,omegab2cut[5]]
+                    keep = keep&(w0+wa<0)
+
                 x=x[keep]
             for i in range(x.shape[1]):
                 keep = (x[:, i]>prior_in[i][0])&(x[:, i]<prior_in[i][1])
@@ -885,10 +897,15 @@ class NN_samplerv1:
             keep = (ombh2>omegab2cut[2])&(ombh2<omegab2cut[3])
             samples = chain
 
-            if len(omegab2cut)>4:
+            if len(omegab2cut)==7:
                 keep = keep&(samples[:,omegab2cut[4]]>omegab2cut[5])&(samples[:,omegab2cut[4]]<omegab2cut[6])
-            if len(omegab2cut)>6:
-                keep = keep&(samples[:,omegab2cut[7]]>omegab2cut[8])&(samples[:,omegab2cut[7]]<omegab2cut[9])
+            if len(omegab2cut)==10:
+                keep = keep&(samples[:,omegab2cut[7]]>omegab2cut[8])&(samples[:,omegab2cut[7]]<omegab2cut[9])&(samples[:,omegab2cut[4]]>omegab2cut[5])&(samples[:,omegab2cut[4]]<omegab2cut[6])
+            if len(omegab2cut)==6:
+                #w0wa cut 
+                w0 = samples[:,omegab2cut[4]]
+                wa = samples[:,omegab2cut[5]]
+                keep = keep&(w0+wa<0)
             chain=chain[keep]
         for i in range(chain.shape[1]):
             keep = (chain[:, i]>prior_in[i][0])&(chain[:, i]<prior_in[i][1])
@@ -1225,12 +1242,23 @@ def generate_training_point(theory, nnsampler, pool, outdir, ntrain, nval, data,
             train_x = np.loadtxt(os.path.join(outdir, "train_samples_x.txt"))#[[1430,1431],:]
             train_y = nnsampler.generate_training_data(zip(range(len(train_x)), train_x), theory, pool=pool, args=[outtrain])
             np.save(outdir+"train_samples_y.npy", train_y)
+        else:
+            train_y = np.load(os.path.join(outdir, "train_samples_y.npy")) 
+            train_x = np.loadtxt(os.path.join(outdir, "train_samples_x.txt"))#[[1430,1431],:]
+        #mask_ = (~np.isnan(np.sum(train_y,axis=1)))&(np.isfinite(np.sum(train_y,axis=1)))
+        #np.savetxt(os.path.join(outdir, "train_samples_x.txt"), train_x[mask_])
 
         #generate validation data
         if not os.path.isfile(os.path.join(outdir, "val_samples_y.npy")):
             val_x = np.loadtxt(os.path.join(outdir, "val_samples_x.txt"))
             val_y = nnsampler.generate_training_data(zip(range(len(val_x)), val_x), theory, pool=pool, args=[outval])
             np.save(outdir+"val_samples_y.npy", val_y)
+
+        else:
+            val_y = np.load(os.path.join(outdir, "val_samples_y.npy")) 
+            val_x = np.loadtxt(os.path.join(outdir, "val_samples_x.txt"))#[[1430,1431],:]
+        #mask_ = (~np.isnan(np.sum(val_y,axis=1)))&(np.isfinite(np.sum(val_y,axis=1)))
+        #np.savetxt(os.path.join(outdir, "val_samples_x.txt"), val_x[mask_])
         #Generate best point
         if negloglike is not None:
             if not os.path.isfile(os.path.join(outdir, "best_samples_x.txt")):
